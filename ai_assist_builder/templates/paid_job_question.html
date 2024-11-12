@@ -1,0 +1,76 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/radios/_macro.njk" import onsRadios %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Paid Job',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for('index'),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+{% block main %}
+    <form method="POST" action="{{ url_for('save_response') }}">
+        <input type="hidden" name="question_id" value="paid_job_question">
+
+        {%
+            call onsQuestion({
+                "title": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                "classes": "ons-u-mt-no",
+                "legendIsQuestionTitle": true,
+                "justification": {
+                    "title": "Why we ask this question",
+                    "content": "<p>placeholder text</p>"
+                }
+            })
+        %}
+        {{
+            onsRadios({
+                "name": "paid-job",
+                "dontWrap": true,
+                "radios": [
+                    {
+                        "id": "paid-job-yes",
+                        "label": {
+                            "text": "Yes"
+                        },
+                        "value": "yes"
+                    },
+                    {
+                        "id": "paid-job-no",
+                        "label": {
+                            "text": "No"
+                        },
+                        "value": "no"
+                    }
+                ]
+            })
+        }}
+        {% endcall %}
+        {{ onsButton({
+            "id": "save-values-button",
+            "text": "Save and continue",
+            }) 
+        }}
+    </form>
+{% endblock %}

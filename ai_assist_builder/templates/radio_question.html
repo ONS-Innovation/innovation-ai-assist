@@ -1,0 +1,73 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/radios/_macro.njk" import onsRadios %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Question example',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": '#0',
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+{% block main %}
+
+{%
+    call onsQuestion({
+        "title": "In your main job, do you have a zero-hour contract?",
+        "classes": "ons-u-mt-no",
+        "legendIsQuestionTitle": true,
+        "justification": {
+            "title": "Why we ask this question",
+            "content": "<p>placeholder text</p>"
+        }
+    })
+%}
+    {{
+        onsRadios({
+            "name": "zero-hour-contract",
+            "dontWrap": true,
+            "radios": [
+                {
+                    "id": "zero-hour-yes",
+                    "label": {
+                        "text": "Yes"
+                    },
+                    "value": "yes"
+                },
+                {
+                    "id": "zero-hour-no",
+                    "label": {
+                        "text": "No"
+                    },
+                    "value": "no"
+                }
+            ]
+        })
+    }}
+{% endcall %}
+{{ onsButton({
+    "id": "save-values-button",
+    "text": "Save and continue",
+    "url": url_for('index'),
+}) }}
+{% endblock %}

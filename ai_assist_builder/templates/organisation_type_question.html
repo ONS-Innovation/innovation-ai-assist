@@ -1,0 +1,124 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/radios/_macro.njk" import onsRadios %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Organisation Type',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for('organisation_activity_question'),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+{% block main %}
+<form method="POST" action="{{ url_for('save_response') }}">
+<input type="hidden" name="question_id" value="organisation_type_question">
+
+{%
+    call onsQuestion({
+        "title": "What kind of organisation was it?",
+        "classes": "ons-u-mt-no",
+        "legendIsQuestionTitle": true,
+        "justification": {
+            "title": "Why we ask this question",
+            "content": "<p>placeholder text</p>"
+        }
+    })
+%}
+    {{
+        onsRadios({
+            "name": "organisation-type",
+            "dontWrap": true,
+            "radios": [
+                {
+                    "id": "limited-company",
+                    "label": {
+                        "text": "A public limited company"
+                    },
+                    "value": "A public limited company"
+                },
+                {
+                    "id": "nationalised-industry",
+                    "label": {
+                        "text": "A nationalised industry or state corporation"
+                    },
+                    "value": "A nationalised industry or state corporation"
+                },
+                {
+                    "id": "central-government",
+                    "label": {
+                        "text": "Central government or civil service"
+                    },
+                    "value": "Central government or civil service"
+                },
+                {
+                    "id": "local-government",
+                    "label": {
+                        "text": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                    },
+                    "value": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                },
+                {
+                    "id": "university-grant-funded",
+                    "label": {
+                        "text": "A university or other grant funded establishment (including opted-out schools)"
+                    },
+                    "value": "A university or other grant funded establishment (including opted-out schools)"
+                },
+                {
+                    "id": "health-authority",
+                    "label": {
+                        "text": "A health authority or NHS Trust"
+                    },
+                    "value": "A health authority or NHS Trust"
+                },
+                {
+                    "id": "charity-volunteer",
+                    "label": {
+                        "text": "A charity, voluntary organisation or trust"
+                    },
+                    "value": "A charity, voluntary organisation or trust"
+                },
+                {
+                    "id": "armed-forces",
+                    "label": {
+                        "text": "The armed forces"
+                    },
+                    "value": "The armed forces"
+                },
+                {
+                    "id": "other-organisation",
+                    "label": {
+                        "text": "Some other kind of organisation"
+                    },
+                    "value": "Some other kind of organisation"
+                }
+            ]
+        })
+    }}
+{% endcall %}
+{{ onsButton({
+    "id": "save-values-button",
+    "text": "Save and continue",
+}) }}
+</form>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{% from "components/input/_macro.njk" import onsInput %}
+{% from "components/summary/_macro.njk" import onsSummary %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'You Responded',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for("longer_hours_question"),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+
+{{
+    onsSummary({
+        "summaries": [
+            {
+                "groups": [
+                    {
+                        "groupTitle": "Summary",
+                        "rows": [
+                            {
+                                "rowTitle": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('paid_job', 'PAID JOB ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "In your main job, do you have a zero-hour contract?",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('zero_hour', 'ZERO HOUR ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "What is your exact job title for your main job or business?",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('job_title', 'JOB TITLE ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "Describe what you do in that job or business as a "+response.get('job_title', 'JOB TITLE ERROR'),
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('job_description', 'JOB DESCRIPTION ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "At your main job, describe the main activity of the business or organisation",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('organisation_activity', 'ORG ACTIVITY ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "What kind of organisation was it?",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('organisation_type', 'ORG TYPE ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "rowTitle": "If given the opportunity, would you prefer to work longer hours at your current basic rate of pay?",
+                                "rowItems": [
+                                    {
+                                        "valueList": [
+                                            {
+                                                "text": response.get('longer_hours', 'LONGER HOURS ERROR')
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            
+
+                        ]
+                    }
+                ]
+            }
+        ]
+    })
+}}
+{{ onsButton({
+    "id": "submit-button",
+    "text": "Submit",
+    "variants": 'loader',
+    "url": url_for('api_request'),
+}) }}
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{% from "components/input/_macro.njk" import onsInput %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Question example',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": '#0',
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+    {%
+        call onsQuestion({
+            "title": "How many visitors are staying overnight at 3 Severn Road on 13 May 2019?",
+            "description": "<p>Enter “0” if there are no visitors staying overnight</p>",
+            "justification": {
+                "title": "Why we ask this question",
+                "content": "<p>Visitor information is collected to ensure that everyone is counted, in order to produce accurate estimates of the population, to facilitate effective planning and funding decisions.</p>"
+            }
+        })
+    %}
+        {{
+            onsInput({
+                "id": "number-of-visitors",
+                "name": "number-of-visitors",
+                "type": "number",
+                "width": "2",
+                "label": {
+                    "text": "Number of visitors"
+                }
+            })
+        }}
+    {% endcall %}
+    {{ onsButton({
+        "id": "save-values-button",
+        "text": "Save and continue",
+        "url": url_for('radio_question'),
+    }) }}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{% from "components/input/_macro.njk" import onsInput %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Organisation Activity',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for('job_description_question'),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+<form method="POST" action="{{ url_for('save_response') }}">
+    <input type="hidden" name="question_id" value="organisation_activity_question">
+    {%
+        call onsQuestion({
+            "title": "At your main job, describe the main activity of the business or organisation",
+            "description": "<p>For example, elderly residential care, food and beverage manufacturing or primart education</p>",
+            "justification": {
+                "title": "Why we ask this question",
+                "content": "<p>placeholder text</p>"
+            }
+        })
+    %}
+        {{
+            onsInput({
+                "id": "organisation-activity",
+                "name": "organisation-activity",
+                "type": "text"
+            })
+        }}
+    {% endcall %}
+    {{ onsButton({
+        "id": "save-values-button",
+        "text": "Save and continue",
+    }) }}
+</form>
+{% endblock %}

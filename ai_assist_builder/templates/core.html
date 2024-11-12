@@ -1,0 +1,89 @@
+{% extends "layout/_template.njk" %}
+{%- if page_title -%} {%- set page_title_value = page_title + ' - TLFS AI Prototype - Office for National Statistics' -%} {%- else -%} {%- set page_title_value = 'TLFS AI Prototype - Office for National Statistics' -%} {%- endif -%}
+{%- block head -%}
+{% endblock %}
+{% set navigation= {
+    "navigation": {
+        "id": "main-navigation",
+        "itemsList": [
+        {"url": url_for("index"),
+        "title": "Home"},
+        {"url": url_for("page_not_found"),
+        "title": "About"},
+        ],
+        "currentPath": current_path
+        }
+    }
+%}
+{% set pageConfig = {
+    "meta": {
+        "canonicalUrl": "/",
+        "description": "/",
+    },
+
+    "title": page_title_value,
+    "header": {
+        "title": 'TLFS AI Prototype',
+        "orgLogoHref": 'https://www.ons.gov.uk',
+        "titleLogoHref": "/",
+        "mastheadLogo": {
+          "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+        },
+        "titleLogo": "/",
+        "navigation": navigation.navigation,
+    },
+    "pageColNumber": "12",
+    "sidebarColNumber": sidebarCols if sidebarCols else 12,
+    "mainClasses": "ons-u-mt-m",
+    "breadcrumbs": breadcrumbs,
+    "navigation": navigation.navigation,
+    "footer": {
+      "OGLLink": true,
+      "legal": [
+        {
+          "itemsList": [
+            {
+              "text": 'Cookies',
+              "url": url_for('page_not_found')
+            },
+            {
+              "text": 'Accessibility Statement',
+              "url": url_for('page_not_found')
+            },
+            {
+              "text": 'Privacy and Data Protection',
+              "url": url_for('page_not_found')
+            }
+          ]
+        }
+      ],
+        },
+    }
+ %}
+
+ pre>{{ pageConfig | pprint }}</pre>
+
+    {% block preHeader %}
+        {% from "components/cookies-banner/_macro.njk" import onsCookiesBanner %}
+        {{
+            onsCookiesBanner({
+                'serviceName': 'tlfsai-prototype.ons.gov.uk'
+            })
+        }}
+        {% from "components/phase-banner/_macro.njk" import onsPhaseBanner %}
+
+        {% set feedbackLink %}
+          <a href="mailto:steve.gibbard@ons.gov.uk">give feedback</a>
+        {% endset %}
+
+        {{
+            onsPhaseBanner({
+                "html": "This is a new service. To help us improve it, " + feedbackLink
+          })
+        }}
+    {% endblock %}
+
+    <
+
+  {%- block main -%}
+  {%- endblock main -%}

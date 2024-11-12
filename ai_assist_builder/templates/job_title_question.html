@@ -1,0 +1,59 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{% from "components/input/_macro.njk" import onsInput %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Job Title',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for('zero_hour_question'),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+    <form method="POST" action="{{ url_for('save_response') }}">
+        <input type="hidden" name="question_id" value="job_title_question">
+    {%
+        call onsQuestion({
+            "title": "What is your exact job title for your main job or business?",
+            "description": "<p>For example, office cleaner, district nurse or primary school teacher</p>",
+            "justification": {
+                "title": "Why we ask this question",
+                "content": "<p>placeholder text</p>"
+            }
+        })
+    %}
+        {{
+            onsInput({
+                "id": "job-title",
+                "name": "job-title",
+                "type": "text"
+            })
+        }}
+    {% endcall %}
+    {{ onsButton({
+        "id": "save-values-button",
+        "text": "Save and continue",
+    }) }}
+    </form>
+{% endblock %}

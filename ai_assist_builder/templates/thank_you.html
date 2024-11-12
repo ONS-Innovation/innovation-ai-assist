@@ -1,0 +1,55 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+{% from "components/label/_macro.njk" import onsLabel %}
+
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Response Submitted',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for("summary"),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+{{
+    onsPanel({
+        "variant": 'success',
+        "id": 'success-id',
+        "iconType": 'check',
+        "body": 'Information has been successfully submitted',
+        "spacious": true
+    })
+}}
+<br></br>
+{{ onsLabel({
+    "text": 'Thank you for your response '+character_name+' !',
+    "classes": 'ons-u-mb-l'
+}) }}
+<p></p>
+{{ onsButton({
+    "id": "submit-button",
+    "text": "Finish",
+    "url": url_for('index'),
+}) }}
+{% endblock %}

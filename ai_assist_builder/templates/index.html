@@ -1,0 +1,70 @@
+{% extends "core.html" %}
+{%- set current_path = url_for("index") -%}
+{% from "components/hero/_macro.njk" import onsHero %}
+
+{% set containerClasses = "ons-container--full-width" %}
+{% block header %}
+{{
+    onsHeader({
+        "title": pageConfig.header.title | default(pageConfig.title),
+        "classes": pageConfig.header.classes,
+        "variants": pageConfig.header.variants,
+        "wide": pageConfig.wide,
+        "language": pageConfig.language,
+        "button": pageConfig.signoutButton,
+        "toggleNavigationButton": pageConfig.toggleNavigationButton,
+        "navigation": pageConfig.navigation,
+        "browserBanner": pageConfig.browserBanner,
+        "phase": pageConfig.phase,
+        "assetsURL": assetsURL,
+        "serviceLinks": pageConfig.serviceLinks,
+        "mastheadLogo": pageConfig.header.mastheadLogo,
+        "noMasthead": pageConfig.header.noMasthead,
+        "orgLogo": pageConfig.header.orgLogo,
+        "orgMobileLogo": pageConfig.header.orgMobileLogo,
+        "orgLogoAlt": pageConfig.header.orgLogoAlt,
+        "orgLogoHref": pageConfig.header.orgLogoHref,
+        "titleLogo": pageConfig.header.titleLogo,
+        "titleLogoClasses": pageConfig.header.titleLogoClasses,
+        "titleLogoMobile": pageConfig.header.titleLogoMobile,
+        "titleLogoMobileClasses": pageConfig.header.titleLogoMobileClasses,
+        "titleLogoAlt": pageConfig.header.titleLogoAlt,
+        "titleLogoHref": pageConfig.header.titleLogoHref,
+        "customHeaderLogo": pageConfig.header.customHeaderLogo
+    })
+}}
+{% endblock %}
+
+{% block pageContent %}
+<main id="main-content">        
+    {% set hero_title = "AI assisted survey responses" %}
+    {% set hero_button = "Start survey" %}
+
+    <div id="main-title">     
+        {{
+            onsHero({
+                "title": hero_title,
+                "button": {
+                    "id": 'find-methods-button', 
+                    "url": url_for("paid_job_question"),
+                    "text": hero_button
+                },
+                wide:true
+            })
+        }}
+    </div>
+
+{% from "components/card/_macro.njk" import onsCard %}
+{% from "components/list/_macro.njk" import onsList %}
+<div class="ons-page__container ons-container ons-u-pb-m">
+    
+    <section class="ons-u-pt-m">
+
+    <div class="ons-grid ons-grid--column@xxs@s">
+    </div>
+
+    </section>
+    
+</div>
+</main>
+{% endblock %}
