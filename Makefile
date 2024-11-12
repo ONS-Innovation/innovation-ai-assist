@@ -38,3 +38,31 @@ install: ## Install the dependencies
 
 install-dev: ## Install the dev dependencies
 	poetry install --no-root
+
+.PHONY: colima-start
+colima-start: ## Start Colima
+	colima start --cpu 2 --memory 4 --disk 100
+
+.PHONY: colima-stop
+colima-stop: ## Stop Colima
+	colima stop
+
+.PHONY: docker-build
+docker-build: ## Build the Docker image
+	DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock" docker build -t ai-assist-builder .
+
+.PHONY: docker-run
+docker-run: ## Run the Docker container
+	DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock" docker run \
+		-p 8000:8000 \
+		-e FLASK_SECRET_KEY=FLASK_SECRET_KEY \
+		-e FLASK_ENV=production \
+		ai-assist-builder
+
+.PHONY: docker-clean
+docker-clean: ## Clean Docker resources
+	DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock" docker system prune -f
+
+.PHONY: colima-status
+colima-status: ## Check Colima status
+	colima status
