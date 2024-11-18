@@ -3,7 +3,7 @@ import random
 from http import HTTPStatus
 
 import requests
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, json, redirect, render_template, request, session, url_for
 from flask_misaka import Misaka
 
 DEBUG = True
@@ -11,6 +11,12 @@ API_TIMER_SEC = 3
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
+
+# Load the questions from the JSON file
+with open("ai_assist_builder/content/tlfs_sic_soc.json") as file:
+    questions_data = json.load(file)
+    questions = questions_data["questions"]
+
 
 Misaka(app)
 
@@ -37,62 +43,28 @@ def print_api_response(random_id, character_name):
 
 @app.route("/")
 def index():
+    # When the user navigates to the home page, reset the session data
+    if "current_question_index" in session:
+        # Reset the current question index in the session
+        session["current_question_index"] = 0
+
+        # Clear the response data in the session
+        if "response" in session:
+            session.pop("response")
+
     return render_template("index.html")
 
 
-@app.route("/question")
-def question():
-    return render_template("question.html")
-
-
-@app.route("/radio_question")
-def radio_question():
-    return render_template("radio_question.html")
-
-
-@app.route("/paid_job_question")
-def paid_job_question():
-    print_session()
-    return render_template("paid_job_question.html")
-
-
-@app.route("/zero_hour_question")
-def zero_hour_question():
-    print_session()
-    return render_template("zero_hour_question.html")
-
-
-@app.route("/job_title_question")
-def job_title_question():
-    print_session()
-    return render_template("job_title_question.html")
-
-
-@app.route("/job_description_question")
-def job_description_question():
-    print_session()
-    response = session.get("response")
-    return render_template(
-        "job_description_question.html", job_title=response.get("job_title")
-    )
-
-
-@app.route("/organisation_activity_question")
-def organisation_activity_question():
-    print_session()
-    return render_template("organisation_activity_question.html")
-
-
-@app.route("/organisation_type_question")
-def organisation_type_question():
-    print_session()
-    return render_template("organisation_type_question.html")
-
-
-@app.route("/longer_hours_question")
-def longer_hours_question():
-    print_session()
-    return render_template("longer_hours_question.html")
+# TODO - Breadcrumbs are not being rendered at the moment
+@app.route("/previous_question")
+def previous_question():
+    # When the user navigates to the home page, reset the session data
+    if "current_question_index" in session and session["current_question_index"] > 0:
+        # Point to the prior question
+        session["current_question_index"] -= 1
+        return redirect(url_for("survey"))
+    else:
+        return render_template("index.html")
 
 
 @app.route("/summary")
@@ -144,8 +116,43 @@ def error_page():
     return "An error occurred. Please try again later."
 
 
+@app.route("/survey", methods=["GET", "POST"])
+def survey():
+    # Initialize the current question index in the session if it doesn't exist
+    if "current_question_index" not in session:
+        session["current_question_index"] = 0
+
+    # Get the current question based on the index
+    current_index = session["current_question_index"]
+    current_question = questions[current_index]
+
+    print("Current question index:", session["current_question_index"])
+    print("Total number of questions:", len(questions))
+
+    # if question_text contains PLACEHOLDER_TEXT, get the associated
+    # placeholder_field associated with the question and replace the
+    # PLACEHOLDER_TEXT string with the value of the specified field
+    # help in session response
+    if "PLACEHOLDER_TEXT" in current_question["question_text"]:
+        # Copy the current question to a new dictionary
+        current_question = current_question.copy()
+
+        placeholder_field = current_question["placeholder_field"]
+
+        if placeholder_field is not None:
+            current_question["question_text"] = current_question["question_text"].replace(
+                "PLACEHOLDER_TEXT", session["response"][placeholder_field]
+            )
+            print("Updated question text:", current_question["question_text"])
+        else:
+            print("No placeholder_field found for question:" + current_question["question_text"])
+
+    return render_template("question_template.html", **current_question)
+
+
 def update_session_and_redirect(key, value, route):
     session["response"][key] = request.form.get(value)
+    session["current_question_index"] += 1
     session.modified = True
     return redirect(url_for(route))
 
@@ -158,35 +165,40 @@ def save_response():
         print("No session data found")
         session["response"] = {}
 
+    print(session["response"])
+
     actions = {
         "paid_job_question": lambda: update_session_and_redirect(
-            "paid_job", "paid-job", "zero_hour_question"
+            "paid_job", "paid-job", "survey"
         ),
         "zero_hour_question": lambda: update_session_and_redirect(
-            "zero_hour", "zero-hour-contract", "job_title_question"
+            "zero_hour", "zero-hour-contract", "survey"
         ),
         "job_title_question": lambda: update_session_and_redirect(
-            "job_title", "job-title", "job_description_question"
+            "job_title", "job-title", "survey"
         ),
         "job_description_question": lambda: update_session_and_redirect(
             "job_description",
             "job-description",
-            "organisation_activity_question",
+            "survey",
         ),
         "organisation_activity_question": lambda: update_session_and_redirect(
             "organisation_activity",
             "organisation-activity",
-            "organisation_type_question",
+            "survey",
         ),
         "organisation_type_question": lambda: update_session_and_redirect(
-            "organisation_type", "organisation-type", "longer_hours_question"
+            "organisation_type", "organisation-type", "survey"
         ),
         "longer_hours_question": lambda: update_session_and_redirect(
             "longer_hours", "longer-hours", "summary"
         ),
     }
 
-    question = request.form.get("question_id")
+    question = request.form.get("question_name")
+
+    print("Question:", question)
+    print("Actions:", actions[question])
 
     if question in actions:
         return actions[question]()
