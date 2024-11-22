@@ -173,19 +173,6 @@ def survey_assist():
         print("Follow-up data:", follow_up)
 
         question_data = follow_up["questions"].pop(0)
-        follow_response_options=(
-                [
-                    {
-                        "id": f"{option}-id",
-                        "label": {"text": option},
-                        "value": option,
-                    }
-                    for option in question_data["response_options"]
-                ]
-                if question_data["response_type"] == "select"
-                else []
-            )
-        print("Follow-up response options:", follow_response_options)
 
         # The response is mapped into a question object
         # which is then added to the dynamic survey data
@@ -247,7 +234,7 @@ def survey_assist():
 
 
 # Route called after each question (or interaction) to save response to session data.
-# The response is saved to the session dictionary and the user is redirected to the 
+# The response is saved to the session dictionary and the user is redirected to the
 # next question or interaction.
 # TODO - The actions dictionary is currently hardcoded for survey questions, this
 # needs to be updated to be more dynamic.  There is also cruft in the variables passed
@@ -397,7 +384,7 @@ def survey_assist_consent():
             "PLACEHOLDER_REASON", ai_assist["consent"]["placeholder_reason"])
 
     print("AI Assist consent question text:", ai_assist["consent"]["question_text"])
-    return render_template("survey_assist_consent.html", 
+    return render_template("survey_assist_consent.html",
                            question_text=ai_assist["consent"]["question_text"],
                            justification_text=ai_assist["consent"]["justification_text"])
 
@@ -417,7 +404,7 @@ def error_page():
 
 # Check if the current question has an associated follow-up that needs to be
 # displayed to the user (this is typically a fllow up question from AI)
-# TODO - This is currently only checking the first interaction, need to search 
+# TODO - This is currently only checking the first interaction, need to search
 # for the current question in the interactions list.
 def followup_redirect():
     current_question = questions[session["current_question_index"]]

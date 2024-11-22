@@ -1,5 +1,5 @@
 class Question:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         question_id,
         question_name,
