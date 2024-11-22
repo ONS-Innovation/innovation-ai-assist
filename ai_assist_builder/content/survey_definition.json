@@ -48,6 +48,13 @@
     ],
     "ai_assist": {
       "enabled": true,
+      "consent": {
+        "required": true,
+        "question_text": "Can Survey Assist ask PLACEHOLDER_FOLLOWUP to better understand PLACEHOLDER_REASON?",
+        "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
+        "placeholder_reason": "your main job and workplace",
+        "max_followup": 3
+      },
       "interactions": [
         {
           "after_question_id": "q1",

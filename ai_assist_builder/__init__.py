@@ -21,6 +21,15 @@ DEBUG = True
 API_TIMER_SEC = 3
 FOLLOW_UP_TYPE = "select"
 
+number_to_word = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+    5: "five",
+    6: "six"
+}
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
 
@@ -359,6 +368,38 @@ def summary():
     survey_questions = survey_data["survey"]["questions"]
     print("Survey questions:", survey_questions)
     return render_template("summary_template.html", questions=survey_questions)
+
+
+# Rendered at the end of the survey
+@app.route("/survey_assist_consent")
+def survey_assist_consent():
+    print("AI Assist consent "+str(ai_assist))
+
+    if "PLACEHOLDER_FOLLOWUP" in ai_assist["consent"]["question_text"]:
+        # Get the maximum followup
+        max_followup = ai_assist["consent"]["max_followup"]
+
+        if max_followup == 1:
+            followup_text = "one additional question"
+        else:
+            # convert numeric to string
+            number_word = number_to_word.get(max_followup, "unknown")
+
+            followup_text = f"a maximum of {number_word} additional questions"
+
+        # Replace PLACEHOLDER_FOLLOWUP wit the content of the placeholder field
+        ai_assist["consent"]["question_text"] = ai_assist["consent"]["question_text"].replace(
+            "PLACEHOLDER_FOLLOWUP", followup_text)
+
+    if "PLACEHOLDER_REASON" in ai_assist["consent"]["question_text"]:
+        # Replace PLACEHOLDER_REASON wit the content of the placeholder field
+        ai_assist["consent"]["question_text"] = ai_assist["consent"]["question_text"].replace(
+            "PLACEHOLDER_REASON", ai_assist["consent"]["placeholder_reason"])
+
+    print("AI Assist consent question text:", ai_assist["consent"]["question_text"])
+    return render_template("survey_assist_consent.html", 
+                           question_text=ai_assist["consent"]["question_text"],
+                           justification_text=ai_assist["consent"]["justification_text"])
 
 
 # Rendered at the end of the survey
