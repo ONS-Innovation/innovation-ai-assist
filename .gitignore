@@ -132,3 +132,6 @@ ai_assist_builder/templates/layout
 .DS_Store
 content/.DS_Store
 /.idea
+
+test.py
+example_survey_data.txt

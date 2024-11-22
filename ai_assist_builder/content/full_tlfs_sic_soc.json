@@ -110,5 +110,22 @@
         "placeholder_field": "",
         "button_text": "Save and continue"
       }
-    ]
+    ],
+    "ai_assist": {
+      "enabled": true,
+      "interactions": [
+        {
+          "after_question_id": "q6",
+          "type": "classification",
+          "param": "soc",
+          "follow_up": {
+            "allowed": true,
+            "presentation": {
+               "immediate": true,
+               "after_question_id": ""
+            }
+          }
+        }
+      ]
+    }
   }
