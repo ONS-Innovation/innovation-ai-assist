@@ -9,7 +9,7 @@
             "description": "/",
         },
         "header": {
-            "title": 'Question example',
+            "title": title,
             "orgLogoHref": 'https://www.ons.gov.uk',
             "titleLogoHref": "/",
             "mastheadLogo": {
@@ -31,7 +31,7 @@
 %}
 {% block main %}
 <form method="POST" action="{{ url_for('save_response') }}">
-    <input type="hidden" name="question_id" value="longer_hours_question">
+    <input type="hidden" name="question_name" value="{{ question_name }}">
 
 {%
     call onsQuestion({
@@ -46,7 +46,7 @@
 %}
     {{
         onsRadios({
-            "name": "consent",
+            "name": "survey-assist-consent",
             "dontWrap": true,
             "radios": [
                 {

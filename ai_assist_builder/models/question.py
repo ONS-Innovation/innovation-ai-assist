@@ -5,6 +5,7 @@ class Question:
         question_name,
         question_title,
         question_text,
+        question_description,
         response_type,
         response_options,
     ):
@@ -12,7 +13,7 @@ class Question:
         self.question_name = question_name
         self.title = question_title
         self.question_text = question_text
-        self.question_description = ""
+        self.question_description = f"<p>{question_description}</p>"
         self.response_type = "radio" if response_type == "select" else response_type
         self.response_name = f"resp-{question_name.replace('_', '-')}"
         self.response_options = self.format_response_options(response_options)
@@ -27,7 +28,7 @@ class Question:
         for option in response_options:
             formatted_options.append(
                 {
-                    "id": f"{option["id"].lower().replace(' ', '-')}",
+                    "id": f"{option['id'].lower().replace(' ', '-')}",
                     "label": option["label"],
                     "value": option["value"].lower(),
                 }

@@ -31,6 +31,19 @@
       },
       {
         "question_id": "q3",
+        "question_name": "job_description_question",
+        "title": "Job Description",
+        "question_text": "Describe what you do in that job or business as a PLACEHOLDER_TEXT",
+        "question_description": "<p>For example, I pack crates of goods in a warehouse for a supermarket chain</p>",
+        "response_type": "text",
+        "response_name": "job-description",
+        "response_options": [],
+        "justification_text": "<p>Placeholder text</p>",
+        "button_text": "Save and continue",
+        "placeholder_field": "job_title"
+      },
+      {
+        "question_id": "q4",
         "question_name": "longer_hours_question",
         "title": "Longer Hours",
         "question_text": "If given the opportunity, would you prefer to work longer hours at your current basic rate of pay?",
@@ -48,8 +61,12 @@
     ],
     "ai_assist": {
       "enabled": true,
+      "question_assist_label": "<br>(Asked by Survey Assist)</br>",
       "consent": {
         "required": true,
+        "question_id": "c1",
+        "title": "Survey Assist Consent",
+        "question_name":"survey_assist_consent",
         "question_text": "Can Survey Assist ask PLACEHOLDER_FOLLOWUP to better understand PLACEHOLDER_REASON?",
         "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
         "placeholder_reason": "your main job and workplace",
