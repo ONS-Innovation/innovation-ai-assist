@@ -15,26 +15,20 @@ from flask import (
 )
 from flask_misaka import Misaka
 
+from ai_assist_builder.models.api_map import map_api_response_to_internal
 from ai_assist_builder.models.question import Question
 
 DEBUG = True
-API_TIMER_SEC = 3
-FOLLOW_UP_TYPE = "select"
+API_TIMER_SEC = 10
+FOLLOW_UP_TYPE = "select"  # select or text
 
-number_to_word = {
-    1: "one",
-    2: "two",
-    3: "three",
-    4: "four",
-    5: "five",
-    6: "six"
-}
+number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
 
 # Load the questions from the JSON file
-with open("ai_assist_builder/content/survey_definition.json") as file:
+with open("ai_assist_builder/content/condensed_tlfs_sic_soc.json") as file:
     survey_data = json.load(file)
     questions = survey_data["questions"]
     ai_assist = survey_data["ai_assist"]
@@ -151,28 +145,70 @@ def survey():
 # TODO - currently uses a mock endpoint for testing
 @app.route("/survey_assist", methods=["GET", "POST"])
 def survey_assist():
-    question_type = FOLLOW_UP_TYPE
 
-    base_url = "https://a3ab54bb-ec4c-413b-a406-fd4ee2434637.mock.pstmn.io/get"
-    api_url = f"{base_url}?type={question_type}"
+    llm = "gemini"  # gemini or chat-gpt
+    type = "sic"  # sic or soc
+
+    # Find the question about job_title
+    user_response = session.get("response")
+
+    api_url = "http://127.0.0.1:5000/survey-assist/classify"
+    body = {
+        "llm": llm,
+        "type": type,
+        "job_title": user_response.get("job_title"),
+        "job_description": user_response.get("job_description"),
+        "org_description": user_response.get("organisation_activity"),
+    }
 
     try:
-        # Send a request to the mocked API
-        response = requests.get(api_url, timeout=API_TIMER_SEC)
-        response_data = response.json()  # Convert the response to JSON
+        # Send a request to the Survey Assist API
+        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
+        response_data = response.json()
 
-        # Get data from the response
-        args = response_data.get("args", {})
+        print("Response data:", response_data)
 
-        # TODO - handle the response data from AI
-        # responses = args.get("responses", [])
-        # categorisation = args.get("categorisation", {})
+        api_response = map_api_response_to_internal(response_data)
 
-        follow_up = args.get("follow_up", {})
+        print("AI Followup Questions:", api_response)
+        followup_questions = api_response.get("follow_up", {}).get("questions", [])
 
-        print("Follow-up data:", follow_up)
+        print("Internal Mapped Followup Questions:", followup_questions)
 
-        question_data = follow_up["questions"].pop(0)
+        # If at least one question is available, loop through the questions
+        # and print the question text
+        if followup_questions:
+            # Add the follow-up questions to the session data
+            # first check if the follow-up questions are already
+            # in the session data
+            if "follow_up" not in session:
+                session["follow_up"] = []
+
+            session["follow_up"].extend(followup_questions)
+            session.modified = True
+            for question in session["follow_up"]:
+                print("SESSION - AI Followup Question Data:", question)
+
+        # if FOLLOW_UP_TYPE == "text":
+        #     followup = api_response.get("follow_up", {})
+        #     question_data = followup["questions"].pop(0)
+        #     question_text = question_data.get("question_text", "")
+        # else:
+        #     followup = api_response.get("follow_up", {})
+        #     question_data = followup["questions"].pop(-1)
+        #     question_text = question_data.get("question_text", "")
+
+        if FOLLOW_UP_TYPE == "text":
+            followup = session.get("follow_up", {})
+            question_data = followup.pop(0)
+            question_text = question_data.get("question_text", "")
+        else:
+            followup = session.get("follow_up", {})
+            question_data = followup.pop(-1)
+            question_text = question_data.get("question_text", "")
+
+        for question in session["follow_up"]:
+            print("SESSION AFTER - AI Followup Question Data:", question)
 
         # The response is mapped into a question object
         # which is then added to the dynamic survey data
@@ -180,10 +216,8 @@ def survey_assist():
         mapped_question = Question(
             question_id=question_data["follow_up_id"],
             question_name=question_data["question_name"],
-            question_title=question_data[
-                "question_name"
-            ],
-            question_text=question_data["question_text"],
+            question_title=question_data["question_name"],
+            question_text=question_text,
             question_description="This question is generated by Survey Assist",
             response_type=question_data["response_type"],
             response_options=(
@@ -193,7 +227,7 @@ def survey_assist():
                         "label": {"text": option},
                         "value": option,
                     }
-                    for option in question_data["response_options"]
+                    for option in question_data["select_options"]
                 ]
                 if question_data["response_type"] == "select"
                 else []
@@ -211,8 +245,8 @@ def survey_assist():
         )
 
         # Add "resp-" prefix to the response name
+        # the summary uses this to identify the response
         response_name = f"resp-{response_name}"
-        print("Response name:", response_name)
 
         # Add the question to the survey data
         user_survey["survey"]["questions"].append(
@@ -227,7 +261,9 @@ def survey_assist():
         )
         session.modified = True
 
-        return render_template("question_template.html", **mapped_question.to_dict())
+        return render_template(
+            "question_template.html", **mapped_question.to_dict()
+        )
     except Exception as e:
         # Handle errors and return an appropriate message
         return jsonify({"error": str(e)}), 500
@@ -274,8 +310,8 @@ def save_response():
             "survey",
         ),
         "organisation_type_question": lambda: update_session_and_redirect(
-            "organisation_type", "organisation-type", "survey"
-        ),
+            "organisation_type", "organisation-type", "summary"
+        ),  # TODO onward route needs to be dynamic (changed from survey to summary)
         "longer_hours_question": lambda: update_session_and_redirect(
             "longer_hours", "longer-hours", "summary"
         ),
@@ -360,7 +396,9 @@ def summary():
     # Survey Assist
     for question in survey_questions:
         if question["response_name"].startswith("resp-ai-assist"):
-            question["question_text"] = question['question_text'] + ai_assist["question_assist_label"]
+            question["question_text"] = (
+                question["question_text"] + ai_assist["question_assist_label"]
+            )
 
     print("Survey questions:", survey_questions)
     return render_template("summary_template.html", questions=survey_questions)
@@ -369,7 +407,7 @@ def summary():
 # Rendered at the end of the survey
 @app.route("/survey_assist_consent")
 def survey_assist_consent():
-    print("AI Assist consent "+str(ai_assist))
+    print("AI Assist consent " + str(ai_assist))
 
     if "PLACEHOLDER_FOLLOWUP" in ai_assist["consent"]["question_text"]:
         # Get the maximum followup
@@ -384,20 +422,24 @@ def survey_assist_consent():
             followup_text = f"a maximum of {number_word} additional questions"
 
         # Replace PLACEHOLDER_FOLLOWUP wit the content of the placeholder field
-        ai_assist["consent"]["question_text"] = ai_assist["consent"]["question_text"].replace(
-            "PLACEHOLDER_FOLLOWUP", followup_text)
+        ai_assist["consent"]["question_text"] = ai_assist["consent"][
+            "question_text"
+        ].replace("PLACEHOLDER_FOLLOWUP", followup_text)
 
     if "PLACEHOLDER_REASON" in ai_assist["consent"]["question_text"]:
         # Replace PLACEHOLDER_REASON wit the content of the placeholder field
-        ai_assist["consent"]["question_text"] = ai_assist["consent"]["question_text"].replace(
-            "PLACEHOLDER_REASON", ai_assist["consent"]["placeholder_reason"])
+        ai_assist["consent"]["question_text"] = ai_assist["consent"][
+            "question_text"
+        ].replace("PLACEHOLDER_REASON", ai_assist["consent"]["placeholder_reason"])
 
     print("AI Assist consent question text:", ai_assist["consent"]["question_text"])
-    return render_template("survey_assist_consent.html",
-                           title=ai_assist["consent"]["title"],
-                           question_name=ai_assist["consent"]["question_name"],
-                           question_text=ai_assist["consent"]["question_text"],
-                           justification_text=ai_assist["consent"]["justification_text"])
+    return render_template(
+        "survey_assist_consent.html",
+        title=ai_assist["consent"]["title"],
+        question_name=ai_assist["consent"]["question_name"],
+        question_text=ai_assist["consent"]["question_text"],
+        justification_text=ai_assist["consent"]["justification_text"],
+    )
 
 
 # Rendered at the end of the survey
@@ -428,9 +470,9 @@ def consent_redirect():
             "response_name": "survey-assist-consent",
             "response_options": [
                 {"id": "consent-yes", "label": {"text": "Yes"}, "value": "yes"},
-                {"id": "consent-no", "label": {"text": "No"}, "value": "no"}
+                {"id": "consent-no", "label": {"text": "No"}, "value": "no"},
             ],
-            "response": consent_response
+            "response": consent_response,
         }
     )
 
