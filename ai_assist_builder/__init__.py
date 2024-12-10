@@ -1,5 +1,7 @@
+from datetime import datetime, timezone
 import os
 import random
+import copy
 from http import HTTPStatus
 
 import requests
@@ -17,10 +19,14 @@ from flask_misaka import Misaka
 
 from ai_assist_builder.models.api_map import map_api_response_to_internal
 from ai_assist_builder.models.question import Question
+from ai_assist_builder.utils.template_utils import render_classification_results, datetime_to_string
+from ai_assist_builder.utils.classification_utils import get_questions_by_classification, filter_classification_responses
 
 DEBUG = True
-API_TIMER_SEC = 10
-FOLLOW_UP_TYPE = "select"  # select or text
+API_TIMER_SEC = 15
+FOLLOW_UP_TYPE = "both"  # select or text or both
+USER_ID = "steve.gibbard"
+SURVEY_NAME = "TLFS PoC"
 
 number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
@@ -37,7 +43,12 @@ with open("ai_assist_builder/content/condensed_tlfs_sic_soc.json") as file:
 # Initialise user survey data
 # TODO - make a utility function
 user_survey = {
-    "survey": {"user": "", "questions": [], "time_start": None, "time_end": None}
+    "survey": {"user": "",
+               "questions": [],
+               "time_start": None,
+               "time_end": None,
+               "survey_assist_time_start": None,
+               "survey_assist_time_end": None}
 }
 
 Misaka(app)
@@ -71,22 +82,27 @@ def index():
         # Reset the current question index in the session
         session["current_question_index"] = 0
 
-        # Clear the response data in the session
-        if "response" in session:
-            session.pop("response")
+    # Clear the response data in the session
+    if "response" in session:
+        session.pop("response")
 
-        if "survey" in session:
-            # Reinitialise the survey data
-            session["survey"] = {
-                "survey": {
-                    "user": "",
-                    "questions": [],
-                    "time_start": None,
-                    "time_end": None,
-                }
+    if "survey" in session:
+
+        print("Index - Initialise survey data")
+        # TODO - is this needed?
+        # Reinitialise the survey data
+        session["survey"] = {
+            "survey": {
+                "user": "",
+                "questions": [],
+                "time_start": None,
+                "time_end": None,
+                "survey_assist_time_start": None,
+                "survey_assist_time_end": None,
             }
+        }
 
-        session.modified = True
+    session.modified = True
 
     return render_template("index.html")
 
@@ -110,12 +126,14 @@ def survey():
     if "current_question_index" not in session:
         session["current_question_index"] = 0
 
+        session.modified = True
+
     # Get the current question based on the index
     current_index = session["current_question_index"]
     current_question = questions[current_index]
 
-    print("Current question index:", session["current_question_index"])
-    print("Total number of questions:", len(questions))
+    # print("Current question index:", session["current_question_index"])
+    # print("Total number of questions:", len(questions))
 
     # if question_text contains PLACEHOLDER_TEXT, get the associated
     # placeholder_field associated with the question and replace the
@@ -131,14 +149,37 @@ def survey():
             current_question["question_text"] = current_question[
                 "question_text"
             ].replace("PLACEHOLDER_TEXT", session["response"][placeholder_field])
-            print("Updated question text:", current_question["question_text"])
-        else:
-            print(
-                "No placeholder_field found for question:"
-                + current_question["question_text"]
-            )
+            # print("Updated question text:", current_question["question_text"])
+        #else:
+            # print(
+            #    "No placeholder_field found for question:"
+            #    + current_question["question_text"]
+            #)
 
     return render_template("question_template.html", **current_question)
+
+
+def get_classification(llm, type, input_data):
+
+    api_url = "http://127.0.0.1:5000/survey-assist/classify"
+    body = {
+        "llm": llm,
+        "type": type,
+        "job_title": input_data[0]["response"],
+        "job_description": input_data[1]["response"],
+        "org_description": input_data[2]["response"],
+    }
+
+    try:
+        # Send a request to the Survey Assist API
+        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
+        response_data = response.json()
+
+        return response_data
+    except Exception as e:
+        print("Error occurred getting classification:", e)
+        # Handle errors and return an appropriate message
+        return jsonify({"error": str(e)}), 500
 
 
 # A generic route that handles survey interactions (e.g call to AI)
@@ -166,18 +207,21 @@ def survey_assist():
         response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
         response_data = response.json()
 
-        print("Response data:", response_data)
+        # print("Response data:", response_data)
 
         api_response = map_api_response_to_internal(response_data)
 
-        print("AI Followup Questions:", api_response)
+        # print("AI Followup Questions:", api_response)
         followup_questions = api_response.get("follow_up", {}).get("questions", [])
 
-        print("Internal Mapped Followup Questions:", followup_questions)
+        # print("Internal Mapped Followup Questions:", followup_questions)
 
         # If at least one question is available, loop through the questions
         # and print the question text
         if followup_questions:
+            # Store the internal survey assist response in the session
+            session["sa_response"] = api_response
+
             # Add the follow-up questions to the session data
             # first check if the follow-up questions are already
             # in the session data
@@ -186,29 +230,21 @@ def survey_assist():
 
             session["follow_up"].extend(followup_questions)
             session.modified = True
-            for question in session["follow_up"]:
-                print("SESSION - AI Followup Question Data:", question)
 
-        # if FOLLOW_UP_TYPE == "text":
-        #     followup = api_response.get("follow_up", {})
-        #     question_data = followup["questions"].pop(0)
-        #     question_text = question_data.get("question_text", "")
-        # else:
-        #     followup = api_response.get("follow_up", {})
-        #     question_data = followup["questions"].pop(-1)
-        #     question_text = question_data.get("question_text", "")
+            # for question in session["follow_up"]:
+                # print("SESSION - AI Followup Question Data:", question)
 
-        if FOLLOW_UP_TYPE == "text":
+        if FOLLOW_UP_TYPE in ["text", "both"]:
             followup = session.get("follow_up", {})
             question_data = followup.pop(0)
             question_text = question_data.get("question_text", "")
-        else:
+        elif FOLLOW_UP_TYPE == "select":
             followup = session.get("follow_up", {})
             question_data = followup.pop(-1)
             question_text = question_data.get("question_text", "")
 
-        for question in session["follow_up"]:
-            print("SESSION AFTER - AI Followup Question Data:", question)
+        # for question in session["follow_up"]:
+            # print("SESSION AFTER - AI Followup Question Data:", question)
 
         # The response is mapped into a question object
         # which is then added to the dynamic survey data
@@ -280,14 +316,21 @@ def save_response():
 
     # Define a dictionary to store responses
     if "response" not in session:
-        print("Response session data NOT found")
+        # print("Response session data NOT found")
         session["response"] = {}
 
     if "survey" not in session:
-        print("Survey session data NOT found")
+        # print("Survey session data NOT found")
         session["survey"] = user_survey
 
-    print(session["response"])
+        # Set the time start based on the current timestamp
+        session["survey"]["survey"]["time_start"] = datetime.now(timezone.utc)
+        session.modified = True
+    elif session["current_question_index"] == 0:
+        session["survey"]["survey"]["time_start"] = datetime.now(timezone.utc)
+        session.modified = True
+
+    print("Save Response Survey time_start:", session["survey"]["survey"]["time_start"])
 
     actions = {
         "paid_job_question": lambda: update_session_and_redirect(
@@ -321,25 +364,21 @@ def save_response():
 
     # Store the user response to the question AI asked
     question = request.form.get("question_name")
-    print("Question:", question)
+    # print("Question:", question)
+
     if question.startswith("ai_assist"):
         question = "follow_up_question"
+
         # get survey data
         survey_data = session.get("survey")
         # get questions
         questions = survey_data["survey"]["questions"]
 
-        print("SR SD:", survey_data)
-        print("Length of questions:", len(questions))
         # get the last question
         last_question = questions[-1]
-        # update the response
-        print("Last question:", last_question)
-        print("Response name:", last_question["response_name"])
-        print("Form data:", request.form)
+        # update the response name, required by forward_redirect
+        # TODO - can this be incorporated in the forward_redirect function?
         last_question["response"] = request.form.get(last_question["response_name"])
-
-        print("Last question:", last_question)
 
     if question in actions:
         return actions[question]()
@@ -347,39 +386,199 @@ def save_response():
         return "Invalid question ID", 400
 
 
+# Make a final API request to get the results of the survey assist
+@app.route("/survey_assist_results", methods=["GET", "POST"])
+def survey_assist_results():
+
+    # Get the survey data from the session
+    user_survey = session.get("survey")
+    survey_questions = user_survey["survey"]["questions"]
+
+    # print("Survey questions:", survey_questions)
+
+    html_output = "<strong> ERROR ERROR ERROR </strong>"
+    # check the survey assist responses exist in the session
+    if "sa_response" in session:
+        sa_response = session.get("sa_response")
+        print("SA Response:", sa_response)
+
+        survey_responses = session.get("survey")
+
+        print("Survey_assist_results")
+        print("Time start:", survey_responses["survey"]["time_start"])
+        print("Time end:", survey_responses["survey"]["time_end"])
+        print("Survey Assist Time Start:", survey_responses["survey"]["survey_assist_time_start"])
+        print("Survey Assist Time End:", survey_responses["survey"]["survey_assist_time_end"])
+
+        # Calculate the time taken to answer the survey
+        time_taken = (
+            survey_responses["survey"]["time_end"]
+            - survey_responses["survey"]["time_start"]
+        ).total_seconds()
+
+        # Calculate the time taken to interact with Survey Assist
+        survey_assist_time = (
+            survey_responses["survey"]["survey_assist_time_end"]
+            - survey_responses["survey"]["survey_assist_time_start"]
+        ).total_seconds()
+
+        # Find the SIC classification questions from the survey
+        classification_questions = get_questions_by_classification(survey_data, "sic")
+        filtered_responses = filter_classification_responses(survey_responses, classification_questions)
+
+        print("Filtered responses:", filtered_responses)
+
+        # Copy the filtered responses dictionary
+        updated_responses = copy.deepcopy(filtered_responses)
+
+        print("Updated responses:", updated_responses)
+        # In updated_responses, find the org description
+        # question
+        org_description_question = [question for question in updated_responses if question["question_text"].startswith("At your main job, describe the main activity of the business")]
+        if org_description_question:
+            print("Organisation description:", org_description_question[0]["response"])
+
+        # search survey_questions and get a list of the questions whose
+        # question_id starts with "f"
+        followup_questions = [question for question in survey_questions if question["question_id"].startswith("f")]
+
+        # If follow up questions were asked print them
+        print("Follow-up questions:", followup_questions)
+
+        for question in followup_questions:
+            if question["response_type"] == "text":
+                # Add the response to the organisation description
+                org_description_question[0]["response"] += f". {question['response']}"
+            elif question["response_type"] == "radio":
+                if question["response"] == "none of the above":
+                    for response in question["response_options"]:
+                        if response["value"] != "none of the above":
+                            # Add the response to the organisation description
+                            org_description_question[0]["response"] += f". Organisation is NOT {response['value']}"
+                else:
+                    # Add the response to the organisation description
+                    org_description_question[0]["response"] += f". Organisation is {question['response']}"
+
+        # copy the sa_response and remove the first entry of
+        # the candidates
+        # TODO - this removes the first candidate, the copy is not needed
+        # as it is not a deep copy and sa_response_presentation is not used
+        sa_response_presentation = sa_response.copy()
+        sa_response_presentation["categorisation"]["codings"] = sa_response_presentation["categorisation"]["codings"][1:]
+
+        # print("Filtered responses:", filtered_responses)
+        html_output = render_classification_results(sa_response,
+                                                    filtered_responses,
+                                                    time_taken,
+                                                    survey_assist_time)
+
+        sa_result = [{"interaction": "classification", "type": "sic", "title": "Initial SIC", "html_output": html_output}]
+
+        print("Updated organisation description:", org_description_question[0]["response"])
+
+        filtered_responses[2]["response"] = org_description_question[0]["response"]
+
+        updated_classification = get_classification("gemini", "sic", filtered_responses)
+
+        print("Updated classification:", updated_classification)
+
+        updated_api_response = map_api_response_to_internal(updated_classification)
+
+        # Remove the first candidate from the classification
+        updated_api_response["categorisation"]["codings"] = updated_api_response["categorisation"]["codings"][1:]
+
+        # TODO - need to store updated_api_response and sa_response
+        # in the session data so they can be saved to the API
+
+        # Render the updated classification results
+        html_output = render_classification_results(updated_api_response,
+                                                    filtered_responses,
+                                                    time_taken,
+                                                    survey_assist_time)
+
+        sa_result.insert(0, {"interaction": "classification", "type": "final-sic", "title": "Final - SIC", "html_output": html_output})
+
+        return render_template("classification_template.html", 
+                               sa_result=sa_result)
+    else:
+        print("Session data not found")
+        return redirect(url_for("thank_you", survey=SURVEY_NAME))
+
+
 # Route to make an API request (used for testing)
-@app.route("/api_request", methods=["GET", "POST"])
-def api_request():
-    print_session()
+@app.route("/save_results", methods=["GET", "POST"])
+def save_results():
+
+    # print the method used
+    # print("SAVE SAVE SAVE - save_results "+request.method)
+
+    survey_data = session.get("survey")
+
+    time_dict = {
+        "time_start": survey_data["survey"]["time_start"],
+        "time_end": survey_data["survey"]["time_end"],
+        "survey_assist_time_start": survey_data
+        ["survey"]["survey_assist_time_start"],
+        "survey_assist_time_end": survey_data
+        ["survey"]["survey_assist_time_end"],
+    }
+    fields = ["time_start", "time_end", "survey_assist_time_start", "survey_assist_time_end"]
+    times = datetime_to_string(time_dict, fields)
+    print("=====TIMES=====")
+    print(times)
+    print("================")
+
+    print("========BODY========")
+    print("user_id:", USER_ID)
+    print("survey_name:", SURVEY_NAME)
+    print("time_start:", times["time_start"])
+    print("time_end:", times["time_end"])
+    print("survey_assist_time_start:", times["survey_assist_time_start"])
+    print("survey_assist_time_end:", times["survey_assist_time_end"])
+    print("survey_schema - core questions", questions)
+    print("survey_schema - survey assist", ai_assist)
+    print("survey_response - questions", survey_data["survey"]["questions"])
+    print("====================")
+    api_url = "http://127.0.0.1:5000/survey-assist/response"
+    body = {
+        "user_id": USER_ID,
+        "survey_responses": [
+            {
+                "survey_name": SURVEY_NAME,
+                "responses": [
+                    {
+                        "time_start": times["time_start"],
+                        "time_end": times["time_end"],
+                        "survey_assist_time_start": times["survey_assist_time_start"],
+                        "survey_assist_time_end": times["survey_assist_time_end"],
+                        "survey_schema": {
+                            "core_questions": questions,
+                            "survey_assist": ai_assist
+                        },
+                        "survey_response": {
+                            "questions": survey_data["survey"]["questions"]
+                        }
+                    }
+                ]
+            }
+        ],
+    }
+
     # make an api request
     try:
-        response = requests.get(
-            "https://api.sampleapis.com/simpsons/characters",
-            timeout=API_TIMER_SEC,
-        )
+        # Send a request to the Survey Assist API
+        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
 
         if response.status_code != HTTPStatus.OK or not response.json():
-            return render_template("thank_you.html", character_name="API ERROR")
-            # TODO return redirect(url_for("error_page"))
+            return redirect(url_for("error_page"))
 
-        characters = response.json()
+        response_data = response.json()
 
-        random_id = random.randint(1, 500)  # noqa: S311
-
-        # Index into the characters list
-        if 0 <= random_id < len(characters):
-            character_name = characters[random_id].get("name", "Unknown Character")
-        else:
-            return render_template("thank_you.html", character_name="API ERROR")
-            # TODO return redirect(url_for("error_page"))
-
-        print_api_response(random_id, character_name)
-        return render_template("thank_you.html", character_name=character_name)
+        return render_template("thank_you.html", survey=SURVEY_NAME)
 
     except Exception as e:
         print("Error occurred:", e)
-        return render_template("thank_you.html", character_name="API ERROR")
-        # TODO return redirect(url_for("error_page"))
+        return redirect(url_for("error_page"))
 
 
 # The survey route takes summarises the data that has been
@@ -391,6 +590,23 @@ def summary():
     survey_data = session.get("survey")
     survey_questions = survey_data["survey"]["questions"]
 
+    # Print warning when time_start is not set
+    if survey_data["survey"]["time_start"] is None:
+        print("WARNING: Survey - time_start is not set")
+
+    # Calculate the time_end based on the current timestamp
+    survey_data["survey"]["time_end"] = datetime.now(timezone.utc)
+    session.modified = True
+
+    print(survey_data["survey"]["time_start"], survey_data["survey"]["time_start"].tzinfo)
+    print(survey_data["survey"]["time_end"], survey_data["survey"]["time_end"].tzinfo)
+
+    # Print the time taken in seconds to answer the survey
+    time_taken = (survey_data["survey"]["time_end"] - survey_data["survey"]["time_start"]).total_seconds()
+    print("--------TIMING--------")
+    print("Time taken to complete survey:", time_taken)
+    print("----------------------")
+
     # Loop through the questions, when a question_name starts with ai_assist
     # uppdate the question_text to have a label added to say it was generated by
     # Survey Assist
@@ -400,14 +616,22 @@ def summary():
                 question["question_text"] + ai_assist["question_assist_label"]
             )
 
-    print("Survey questions:", survey_questions)
+    # print("Survey questions:", survey_questions)
     return render_template("summary_template.html", questions=survey_questions)
 
 
-# Rendered at the end of the survey
 @app.route("/survey_assist_consent")
 def survey_assist_consent():
-    print("AI Assist consent " + str(ai_assist))
+    # print("AI Assist consent " + str(ai_assist))
+
+    # Get the survey data from the session
+    user_survey = session.get("survey")
+
+    print("Survey time start in survey_assist_consent:", user_survey["survey"]["time_start"])
+
+    # Mark the survey assist time start
+    user_survey.get("survey")["survey_assist_time_start"] = datetime.now(timezone.utc)
+    session.modified = True
 
     if "PLACEHOLDER_FOLLOWUP" in ai_assist["consent"]["question_text"]:
         # Get the maximum followup
@@ -432,7 +656,7 @@ def survey_assist_consent():
             "question_text"
         ].replace("PLACEHOLDER_REASON", ai_assist["consent"]["placeholder_reason"])
 
-    print("AI Assist consent question text:", ai_assist["consent"]["question_text"])
+    # print("AI Assist consent question text:", ai_assist["consent"]["question_text"])
     return render_template(
         "survey_assist_consent.html",
         title=ai_assist["consent"]["title"],
@@ -442,11 +666,29 @@ def survey_assist_consent():
     )
 
 
+@app.route("/classification")
+def classification():
+    return render_template("classification_template.html")
+    # print_session()
+    # survey_data = session.get("survey")
+    # survey_questions = survey_data["survey"]["questions"]
+
+    # # Loop through the questions, when a question_name starts with ai_assist
+    # # uppdate the question_text to have a label added to say it was generated by
+    # # Survey Assist
+    # for question in survey_questions:
+    #     if question["response_name"].startswith("resp-ai-assist"):
+    #         question["question_text"] = (
+    #             question["question_text"] + ai_assist["question_assist_label"]
+    #         )
+
+    # return render_template("classification_template.html", questions=survey_questions)
+
 # Rendered at the end of the survey
 @app.route("/thank_you")
 def thank_you():
     print_session()
-    return render_template("thank_you.html")
+    return render_template("thank_you.html", survey=SURVEY_NAME)
 
 
 # Route to handle errors
@@ -479,10 +721,13 @@ def consent_redirect():
     session.modified = True
 
     if consent_response == "yes":
-        print("User consented to AI Assist")
+        # print("User consented to AI Assist")
         return redirect(url_for("survey_assist"))
     else:
-        print("User did not consent to AI Assist")
+        # print("User did not consent to AI Assist")
+        # Mark the end time for the survey assist
+        user_survey.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
+
         # Skip to next standard question
         session["current_question_index"] += 1
         session.modified = True
@@ -493,14 +738,15 @@ def consent_redirect():
 # for the current question in the interactions list.
 def followup_redirect():
     current_question = questions[session["current_question_index"]]
-    print("followup current_question:", current_question.get("question_id"))
+    # print("followup current_question:", current_question.get("question_id"))
 
     interactions = ai_assist.get("interactions")
     # Check if the current question has a follow-up question
+    # TODO - this is currently only checking the first interaction
     if len(interactions) > 0 and current_question.get("question_id") == interactions[
         0
     ].get("after_question_id"):
-        print("FOLLOW UP - FOUND ")
+        # print("=== FOLLOW UP PROCESSING ===")
 
         # Save the response to the session
         survey_data = session.get("survey")
@@ -514,7 +760,73 @@ def followup_redirect():
             last_question["response_name"]
         )
 
-        # increment the current question index
+        # Check if the session has follow-up questions
+        if "follow_up" in session and FOLLOW_UP_TYPE == "both":
+            follow_up = session["follow_up"]
+            if len(follow_up) > 0:
+                # Get the next follow-up question
+                follow_up_question = follow_up.pop(0)
+                # print("Follow-up question:", follow_up_question)
+
+                # The response is mapped into a question object
+                # which is then added to the dynamic survey data
+                # TODO - make a function to handle this
+                mapped_question = Question(
+                    question_id=follow_up_question["follow_up_id"],
+                    question_name=follow_up_question["question_name"],
+                    question_title=follow_up_question["question_name"],
+                    question_text=follow_up_question["question_text"],
+                    question_description="This question is generated by Survey Assist",
+                    response_type=follow_up_question["response_type"],
+                    response_options=(
+                        [
+                            {
+                                "id": f"{option}-id",
+                                "label": {"text": option},
+                                "value": option,
+                            }
+                            for option in follow_up_question["select_options"]
+                        ]
+                        if follow_up_question["response_type"] == "select"
+                        else []
+                    ),
+                )
+
+                mapped_question_data = mapped_question.to_dict()
+
+                user_survey = session.get("survey", {})
+
+                response_name = (
+                    mapped_question_data.get("question_name")
+                    .replace("ai-assist-", "", 1)
+                    .replace("_", "-")
+                )
+
+                # Add "resp-" prefix to the response name
+                response_name = f"resp-{response_name}"
+
+                # Add the question to the survey data
+                user_survey["survey"]["questions"].append(
+                    {
+                        "question_id": mapped_question_data.get("question_id"),
+                        "question_text": mapped_question_data.get("question_text"),
+                        "response_type": mapped_question_data.get("response_type"),
+                        "response_options": mapped_question_data.get("response_options"),
+                        "response": None,  # added after user input
+                        "response_name": response_name,
+                    }
+                )
+                session.modified = True
+
+                return render_template(
+                    "question_template.html", **mapped_question.to_dict()
+                )
+
+        # Mark the end time for the survey assist
+        survey_data.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
+
+        # increment the current question index to
+        # get the next question
         session["current_question_index"] += 1
         session.modified = True
         return redirect(url_for("survey"))
@@ -538,9 +850,16 @@ def update_session_and_redirect(key, value, route):
             "questions": [],
             "time_start": None,
             "time_end": None,
+            "survey_assist_time_start": None,
+            "survey_assist_time_end": None,
         }
         user_survey = session["survey"]
-        print("User survey data:", user_survey)
+        # Set the time start based on the current timestamp
+        user_survey["time_start"] = datetime.now(timezone.utc)
+        print("Initialise survey data in update_session_and_redirect")
+        print("Survey data:", session.get("survey"))
+        session.modified = True
+
 
     # Get the current question and take a copy so
     # that the original question data is not modified
@@ -553,7 +872,7 @@ def update_session_and_redirect(key, value, route):
         current_question["question_text"] = current_question["question_text"].replace(
             "PLACEHOLDER_TEXT", session["response"][placeholder_field]
         )
-        print("Updated question text:", current_question["question_text"])
+        # print("Updated question text:", current_question["question_text"])
 
     # Append the question and response to the list of questions
     user_survey["survey"]["questions"].append(
@@ -564,6 +883,7 @@ def update_session_and_redirect(key, value, route):
             "response_options": current_question.get("response_options"),
             "response_name": current_question.get("response_name"),
             "response": request.form.get(value),
+            "used_for_classifications": current_question.get("used_for_classifications"),
         }
     )
 
@@ -574,14 +894,14 @@ def update_session_and_redirect(key, value, route):
         session.modified = True
         interactions = ai_assist.get("interactions")
         if len(interactions) > 0:
-            print("Interactions:", interactions[0])
-            print("current_question:", current_question.get("question_id"))
-            print("interaction id:", interactions[0].get("after_question_id"))
+            # print("Interactions:", interactions[0])
+            # print("current_question:", current_question.get("question_id"))
+            # print("interaction id:", interactions[0].get("after_question_id"))
 
             if current_question.get("question_id") == interactions[0].get(
                 "after_question_id"
             ):
-                print("AI Assist interaction detected - REDIRECTING to consent")
+                # print("AI Assist interaction detected - REDIRECTING to consent")
                 return redirect(url_for("survey_assist_consent"))
 
     session["current_question_index"] += 1

@@ -14,7 +14,8 @@
         ],
         "justification_text": "Placeholder text",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": []
       },
       {
         "question_id": "q2",
@@ -30,7 +31,8 @@
         ],
         "justification_text": "<p>Placeholder text</p>",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": []
       },
       {
         "question_id": "q3",
@@ -43,7 +45,8 @@
         "response_options": [],
         "justification_text": "<p>Placeholder text</p>",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": ["sic","soc"]
       },
       {
         "question_id": "q4",
@@ -56,7 +59,8 @@
         "response_options": [],
         "justification_text": "<p>Placeholder text</p>",
         "button_text": "Save and continue",
-        "placeholder_field": "job_title"
+        "placeholder_field": "job_title",
+        "used_for_classifications": ["sic","soc"]
       },
       {
         "question_id": "q5",
@@ -69,7 +73,8 @@
         "response_options": [],
         "justification_text": "<p>Placeholder text</p>",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": ["sic","soc"]
       },
       {
         "question_id": "q6",
@@ -92,7 +97,8 @@
         ],
         "justification_text": "<p>Placeholder text</p>",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": ["sic","soc"]
       },
       {
         "question_id": "q7",
@@ -108,12 +114,13 @@
         ],
         "justification_text": "<p>Placeholder text</p>",
         "placeholder_field": "",
-        "button_text": "Save and continue"
+        "button_text": "Save and continue",
+        "used_for_classifications": []
       }
     ],
     "ai_assist": {
       "enabled": true,
-      "question_assist_label": "<br>(Asked by Survey Assist)</br>",
+      "question_assist_label": "<br><strong>(Asked by Survey Assist)</strong></br>",
       "consent": {
         "required": true,
         "question_id": "c1",
@@ -122,7 +129,7 @@
         "question_text": "Can Survey Assist ask PLACEHOLDER_FOLLOWUP to better understand PLACEHOLDER_REASON?",
         "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
         "placeholder_reason": "your main job and workplace",
-        "max_followup": 3
+        "max_followup": 2
       },
       "interactions": [
         {

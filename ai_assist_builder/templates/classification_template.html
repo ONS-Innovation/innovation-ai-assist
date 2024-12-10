@@ -1,0 +1,102 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/summary/_macro.njk" import onsSummary %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+{% from "components/list/_macro.njk" import onsList %}
+{% from "components/tabs/_macro.njk" import onsTabs %}
+
+
+
+{% set pageConfig = {
+    "meta": {
+        "canonicalUrl": "/",
+        "description": "/",
+    },
+    "header": {
+        "title": 'Classification',
+        "orgLogoHref": 'https://www.ons.gov.uk',
+        "titleLogoHref": "/",
+        "mastheadLogo": {
+          "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+        },
+        "titleLogo": "/",
+        "navigation": navigation.navigation,
+    },
+    "breadcrumbs": {
+        "ariaLabel": 'Breadcrumbs',
+        "itemsList": [
+            {
+                "url": url_for("previous_question"),
+                "text": 'Previous'
+            }
+        ]
+    }
+} %}
+
+{% block main %}
+<h1>Survey Assist Results</h1>
+<p>Use the tabs below to see the output from Survey Assist for the interactions configured in the survey</p>
+{{
+    onsTabs({
+        "title": 'Contents',
+        "titleClasses": 'ons-u-fs-m',
+        "tabs": [
+            {
+                "id": sa_result[0].type,
+                "title": sa_result[0].title,
+                "showTitle": true,
+                "content": sa_result[0].html_output
+            },
+            {
+                "id": sa_result[1].type,
+                "title": sa_result[1].title,
+                "showTitle": true,
+                "content": sa_result[1].html_output
+            },
+            {
+                "id": "soc",
+                "title": 'SOC',
+                "showTitle": true,
+                "content":
+"<h2>Classification Results</h2>
+<h3>Most Likely</h3>
+<ul><li>tbd</li></ul>
+<br>
+
+<h3>Alternatives</h3>
+<ul><li>tbd</li>
+<li>tbd</li>
+<li>tbd</li></ul>
+<br>
+
+<h3>Justification</h3>
+<p>tbd</p>
+<br>
+
+<h3>Input for Classification</h3>
+<strong>Question One?</strong>
+<p>tbd</p>
+
+<strong>Question Two?</strong>
+<p>tbd</p>
+
+<strong>Question Three?</strong>
+<p>tbd</p>
+
+"
+            }
+
+        ]
+    })
+}}
+
+<br>
+
+{{ onsButton({
+    "id": "submit-button",
+    "text": "Save and Continue",
+    "variants": 'loader',
+    "url": url_for('save_results'),
+}) }}
+
+{% endblock %}
