@@ -1,37 +1,52 @@
-from datetime import datetime, timezone
+import copy
 import os
 import random
-import copy
+from datetime import datetime, timezone
 from http import HTTPStatus
 
 import requests
-from flask import (
-    Flask,
-    json,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import Flask, g, json, jsonify, redirect, render_template, request, session, url_for
 from flask_misaka import Misaka
+from google.cloud import storage
 
 from ai_assist_builder.models.api_map import map_api_response_to_internal
 from ai_assist_builder.models.question import Question
-from ai_assist_builder.utils.template_utils import render_classification_results, datetime_to_string
-from ai_assist_builder.utils.classification_utils import get_questions_by_classification, filter_classification_responses
+from ai_assist_builder.utils.classification_utils import (
+    filter_classification_responses,
+    get_classification,
+    get_questions_by_classification,
+    save_classification_response,
+)
+from ai_assist_builder.utils.jwt_utils import check_and_refresh_token, current_utc_time, generate_jwt
+from ai_assist_builder.utils.template_utils import datetime_to_string, render_classification_results
 
 DEBUG = True
+TOKEN_EXPIRY = 3600  # 1 hour
+REFRESH_THRESHOLD = 300  # 5 minutes
 API_TIMER_SEC = 15
 FOLLOW_UP_TYPE = "both"  # select or text or both
-USER_ID = "steve.gibbard"
 SURVEY_NAME = "TLFS PoC"
 
 number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
+backend_api_url = os.getenv("BACKEND_API_URL", "http://127.0.0.1:5000")
+
+# TODO - store secret in secret manager
+jwt_secret_path = os.getenv("JWT_SECRET", "/app/jwt-secret.json")
+
+api_gateway = os.getenv("API_GATEWAY", "https://example-api-gateway-d90b4xu9.nw.gateway.dev")
+sa_email = os.getenv("SA_EMAIL", "backend-api-access@ai-assist-tlfs-poc.iam.gserviceaccount.com")
+
+token_start_time = current_utc_time()
+# Generate JWT (lasts 1 hour - TODO rotate before expiry)
+jwt_token = generate_jwt(jwt_secret_path,
+                         audience=api_gateway,
+                         sa_email=sa_email,
+                         expiry_length=TOKEN_EXPIRY)
+# Print the last 5 digits of the jwt token
+print(f"JWT Token ends with {jwt_token[-5:]} created at {token_start_time}")
 
 # Load the questions from the JSON file
 with open("ai_assist_builder/content/condensed_tlfs_sic_soc.json") as file:
@@ -61,6 +76,27 @@ app.config["FREEZER_DEFAULT_MIMETYPE"] = "text/html"
 app.config["FREEZER_DESTINATION"] = "../build"
 app.cache = {}
 
+# GCP Bucket and File Info
+BUCKET_NAME = "sandbox-survey-assist"
+USERS_FILE = "users.json"
+storage_client = storage.Client()
+
+
+def validate_user(email, password):
+    """Validate the user against the credentials in the GCP bucket."""
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(USERS_FILE)
+        data = json.loads(blob.download_as_text())
+
+        # Check if the user exists and the password matches
+        for user in data.get("users", []):
+            if user["email"] == email and user["password"] == password:
+                return True
+    except Exception as e:
+        print(f"Error validating user: {e}")
+    return False
+
 
 def print_session():
     if DEBUG:
@@ -75,8 +111,42 @@ def print_api_response(random_id, character_name):
         print("Character name:", character_name)
 
 
+# Check the JWT token status before processing the request
+@app.before_request
+def before_request():
+    global token_start_time, jwt_token
+    """Check token status before processing the request."""
+    token_start_time, jwt_token = check_and_refresh_token(token_start_time,
+                                                          jwt_token,
+                                                          jwt_secret_path,
+                                                          api_gateway,
+                                                          sa_email)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        print(f"Request form: {request}")
+
+    return render_template("login.html")
+
+
+@app.route("/check_login", methods=["POST"])
+def check_login():
+    email = request.form.get("email-username")
+    password = request.form.get("password")
+
+    if validate_user(email, password):
+        session["user"] = email  # Save user in session
+        return redirect("/")
+    else:
+        return render_template("login.html", error="Invalid credentials. Please try again.")
+
+
 @app.route("/")
 def index():
+    if "user" not in session:
+        return redirect("/login")
     # When the user navigates to the home page, reset the session data
     if "current_question_index" in session:
         # Reset the current question index in the session
@@ -101,6 +171,9 @@ def index():
                 "survey_assist_time_end": None,
             }
         }
+
+    if "sa_response" in session:
+        session["sa_response"] = []
 
     session.modified = True
 
@@ -159,29 +232,6 @@ def survey():
     return render_template("question_template.html", **current_question)
 
 
-def get_classification(llm, type, input_data):
-
-    api_url = "http://127.0.0.1:5000/survey-assist/classify"
-    body = {
-        "llm": llm,
-        "type": type,
-        "job_title": input_data[0]["response"],
-        "job_description": input_data[1]["response"],
-        "org_description": input_data[2]["response"],
-    }
-
-    try:
-        # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
-        response_data = response.json()
-
-        return response_data
-    except Exception as e:
-        print("Error occurred getting classification:", e)
-        # Handle errors and return an appropriate message
-        return jsonify({"error": str(e)}), 500
-
-
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - currently uses a mock endpoint for testing
 @app.route("/survey_assist", methods=["GET", "POST"])
@@ -193,7 +243,9 @@ def survey_assist():
     # Find the question about job_title
     user_response = session.get("response")
 
-    api_url = "http://127.0.0.1:5000/survey-assist/classify"
+    api_url = backend_api_url+"/survey-assist/classify"
+    print("SENDING REQUEST API URL:", api_url)
+
     body = {
         "llm": llm,
         "type": type,
@@ -201,10 +253,13 @@ def survey_assist():
         "job_description": user_response.get("job_description"),
         "org_description": user_response.get("organisation_activity"),
     }
+    headers = {
+        "Authorization": f"Bearer {jwt_token}"
+    }
 
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
+        response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
         response_data = response.json()
 
         # print("Response data:", response_data)
@@ -219,8 +274,9 @@ def survey_assist():
         # If at least one question is available, loop through the questions
         # and print the question text
         if followup_questions:
+
             # Store the internal survey assist response in the session
-            session["sa_response"] = api_response
+            save_classification_response(session, api_response)
 
             # Add the follow-up questions to the session data
             # first check if the follow-up questions are already
@@ -399,16 +455,19 @@ def survey_assist_results():
     html_output = "<strong> ERROR ERROR ERROR </strong>"
     # check the survey assist responses exist in the session
     if "sa_response" in session:
-        sa_response = session.get("sa_response")
-        print("SA Response:", sa_response)
+        sa_response_list = session.get("sa_response", [])
+        if sa_response_list:
+            sa_response = sa_response_list[0]
+        else:
+            print("No responses in sa_response.")
 
         survey_responses = session.get("survey")
 
-        print("Survey_assist_results")
-        print("Time start:", survey_responses["survey"]["time_start"])
-        print("Time end:", survey_responses["survey"]["time_end"])
-        print("Survey Assist Time Start:", survey_responses["survey"]["survey_assist_time_start"])
-        print("Survey Assist Time End:", survey_responses["survey"]["survey_assist_time_end"])
+        # print("Survey_assist_results")
+        # print("Time start:", survey_responses["survey"]["time_start"])
+        # print("Time end:", survey_responses["survey"]["time_end"])
+        # print("Survey Assist Time Start:", survey_responses["survey"]["survey_assist_time_start"])
+        # print("Survey Assist Time End:", survey_responses["survey"]["survey_assist_time_end"])
 
         # Calculate the time taken to answer the survey
         time_taken = (
@@ -478,7 +537,14 @@ def survey_assist_results():
 
         filtered_responses[2]["response"] = org_description_question[0]["response"]
 
-        updated_classification = get_classification("gemini", "sic", filtered_responses)
+        updated_classification = get_classification(backend_api_url,
+                                                    jwt_token,
+                                                    "gemini",
+                                                    "sic",
+                                                    filtered_responses)
+
+        # Add the updated classification to the session data
+        save_classification_response(session, updated_classification)
 
         print("Updated classification:", updated_classification)
 
@@ -528,8 +594,14 @@ def save_results():
     print(times)
     print("================")
 
+    user = session.get("user","unknown.user")
+
+    if user != "unknown.user":
+        # Extract everything before @
+        user = user.split("@")[0] 
+
     print("========BODY========")
-    print("user_id:", USER_ID)
+    print("user_id:", user)
     print("survey_name:", SURVEY_NAME)
     print("time_start:", times["time_start"])
     print("time_end:", times["time_end"])
@@ -539,9 +611,28 @@ def save_results():
     print("survey_schema - survey assist", ai_assist)
     print("survey_response - questions", survey_data["survey"]["questions"])
     print("====================")
-    api_url = "http://127.0.0.1:5000/survey-assist/response"
+
+    # Get the sa_response from the session data
+    sa_response = session.get("sa_response", [])
+
+    sa_response_list = [
+        {
+            "type": "classification",
+            "response": json.dumps(response),
+            "interaction_sequence": index + 1
+        }
+        for index, response in enumerate(sa_response)
+    ]
+
+    print("=====SA RESPONSE LIST=====")
+    print(sa_response_list)
+    print("==========================")
+
+    api_url = backend_api_url+"/survey-assist/response"
+    print("SENDING REQUEST API URL:", api_url)
+
     body = {
-        "user_id": USER_ID,
+        "user_id": user,
         "survey_responses": [
             {
                 "survey_name": SURVEY_NAME,
@@ -559,20 +650,25 @@ def save_results():
                             "questions": survey_data["survey"]["questions"]
                         }
                     }
-                ]
+                ],
+                "survey_assist":
+                {
+                    "interactions": sa_response_list
+                }
             }
         ],
     }
 
+    headers = {
+        "Authorization": f"Bearer {jwt_token}"
+    }
     # make an api request
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, timeout=API_TIMER_SEC)
+        response = requests.post(api_url, json=body, headers=headers ,timeout=API_TIMER_SEC)
 
         if response.status_code != HTTPStatus.OK or not response.json():
             return redirect(url_for("error_page"))
-
-        response_data = response.json()
 
         return render_template("thank_you.html", survey=SURVEY_NAME)
 

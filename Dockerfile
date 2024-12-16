@@ -10,7 +10,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=1.7.1 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_CREATE=false
+    POETRY_VIRTUALENVS_CREATE=false \
+    JWT_SECRET=/app/jwt-secret.json
+
 
 # Install system dependencies and Poetry
 RUN apt-get update \
@@ -28,6 +30,7 @@ RUN apt-get update \
 COPY pyproject.toml poetry.lock ./
 COPY ai_assist_builder ./ai_assist_builder
 COPY main.py ./
+COPY ai-assist-tlfs-poc-secret.json /app/jwt-secret.json
 
 # Install dependencies
 RUN poetry install --no-root --only main

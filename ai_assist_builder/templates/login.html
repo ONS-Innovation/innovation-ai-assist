@@ -1,0 +1,72 @@
+{% extends "layout/_template.njk" %}
+{% from "components/password/_macro.njk" import onsPassword %}
+{% from "components/input/_macro.njk" import onsInput %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+
+{%  
+    set pageConfig = {
+        "header": {
+            "title": 'TLFS Survey Assist Prototype',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "footer": {
+            "OGLLink": true,
+            "legal": [
+            ],
+              },
+    }
+%}
+{% block main %}  
+{{
+    onsPanel({
+        "id": 'success-id',
+        "body": 'Contact <strong>steve.gibbard@ons.gov.uk</strong> for access to this PoC solution',
+        "spacious": false
+    })
+}}  
+    <p></p>
+    <h1>Sign In</h1>
+      {% if error %}
+        <p style="color: red;">{{ error }}</p>
+      {% endif %}
+    <form method="POST" action="{{ url_for('check_login') }}"> 
+            {{
+                onsInput({
+                    "id": "email-username",
+                    "name": "email-username",
+                    "type": "email",
+                    "autocomplete": "email",
+                    "label": {
+                        "text": "Email address"
+                    }
+                })
+            }}
+            {{
+
+                onsPassword({
+                    "id": "password",
+                    "name": "password",
+                    "label": {
+                        "text": "Password"
+                    }
+                })
+            }}
+            <br>
+            {{ onsButton({
+                "id": "save-values-button",
+                "text": "Login",
+                }) 
+            }}
+    </form>
+{% endblock %}
