@@ -54,12 +54,15 @@ def map_api_response_to_internal(api_response: dict) -> list:
         # Create select follow-up question
         if api_response.get("sic_candidates"):
             select_options = [
-                candidate["sic_descriptive"] for candidate in api_response["sic_candidates"]
+                candidate["sic_descriptive"]
+                for candidate in api_response["sic_candidates"]
             ]
             select_options.append("None of the above")
             follow_up = internal_representation["follow_up"]
             follow_up["questions"].append(
-                create_follow_up_question(api_response, "f1.2", "select", select_options)
+                create_follow_up_question(
+                    api_response, "f1.2", "select", select_options
+                )
             )
     else:
         # The original sic_soc_llm code would return true
@@ -69,11 +72,12 @@ def map_api_response_to_internal(api_response: dict) -> list:
         follow_up = internal_representation["follow_up"]
         print("MAP Followup:", api_response.get("sic_description"))
         follow_up["questions"].append(
-            create_follow_up_question(api_response,
-                                      "f1.1",
-                                      "confirm",
-                                      [api_response.get("sic_description"),
-                                       "No"])
+            create_follow_up_question(
+                api_response,
+                "f1.1",
+                "confirm",
+                [api_response.get("sic_description"), "No"],
+            )
         )
 
     return internal_representation

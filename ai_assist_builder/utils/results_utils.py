@@ -7,7 +7,14 @@ import pandas as pd
 from flask import Response
 from google.cloud import storage
 
-from ai_assist_builder.models.results import Candidate, Classification, Note, QuestionInteraction, Result, Times
+from ai_assist_builder.models.results import (
+    Candidate,
+    Classification,
+    Note,
+    QuestionInteraction,
+    Result,
+    Times,
+)
 
 
 def calculate_times(data):
@@ -38,7 +45,7 @@ def calculate_times(data):
 
     return {
         "total_time_secs": total_time_secs,
-        "interaction_time_secs": interaction_time_secs
+        "interaction_time_secs": interaction_time_secs,
     }
 
 
@@ -49,7 +56,9 @@ def create_test_id(time_start, user, job_title):
         formatted_date = start_datetime.strftime("%d%m%Y")
         start_time_hhmmss = start_datetime.strftime("%H%M%S")
     except ValueError:
-        raise ValueError("Invalid time_start format. Expected format: YYYY-MM-DD HH:MM:SS UTC")  # noqa: B904
+        raise ValueError(  # noqa: B904
+            "Invalid time_start format. Expected format: YYYY-MM-DD HH:MM:SS UTC"
+        )
 
     # Process user and job_title by removing special characters and spaces
     user_cleaned = user.replace(".", "").replace(" ", "").lower()
@@ -92,7 +101,11 @@ def create_test_id(time_start, user, job_title):
 #     "notes": []  # list of notes objects (text, expected_code)
 # }
 # results = [result1, result2, ...]
-def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C901, PLR0912, PLR0915
+#
+# TODO - simplify this function
+def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
+    bucket_name, base_folder, user, date
+):
     # Initialize the storage client
     storage_client = storage.Client()
 
@@ -144,13 +157,16 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
                 user_response = question.get("response")
 
                 # Add the question and response to the list
-                questions_results.append(QuestionInteraction(text=question_text,
-                                                             response=user_response))
+                questions_results.append(
+                    QuestionInteraction(text=question_text, response=user_response)
+                )
             elif question.get("response_name") == "resp-ai-assist-followup":
                 question_text = question.get("question_text")
                 user_response = question.get("response")
 
-                if question_text.startswith("Which of these best describes your organisation's activities?"):
+                if question_text.startswith(
+                    "Which of these best describes your organisation's activities?"
+                ):
                     for option in question.get("response_options"):
                         options += option.get("value") + ", "
                     # Remove the last comma and space
@@ -160,8 +176,9 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
                 question_text = question_text.partition("<br><strong>(Asked")[0]
 
                 # Add the question and response to the list
-                interactions_results.append(QuestionInteraction(text=question_text,
-                                                                response=user_response))
+                interactions_results.append(
+                    QuestionInteraction(text=question_text, response=user_response)
+                )
 
             if question.get("response_name") == "job-title":
                 job_title = question.get("response")
@@ -179,7 +196,9 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
                 # TODO - classification results are stored differently between first
                 # interaction and final interaction.  For now, need to handle both cases.
                 if sequence == 1:
-                    categorisation = interaction.get("response", {}).get("categorisation", {})
+                    categorisation = interaction.get("response", {}).get(
+                        "categorisation", {}
+                    )
                     justification = categorisation.get("justification", "")
 
                     candidates = categorisation.get("codings", [])
@@ -187,25 +206,41 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
                     # most likely confidence needs to be caculated from the confidence of the first element
                     # of the list plus 0.1
                     if candidates:
-                        ml_confidence = round(candidates[0].get("confidence", 0.0) + 0.1, 1)
+                        ml_confidence = round(
+                            candidates[0].get("confidence", 0.0) + 0.1, 1
+                        )
 
                     # Add the most likely SIC code to first element of the list
-                    candidates.insert(0,
-                                      {"confidence": categorisation.get("confidence", ml_confidence),
-                                       "code": categorisation.get("sic_code", "N/A"),
-                                       "code_description": categorisation.get("sic_description", "N/A")})
+                    candidates.insert(
+                        0,
+                        {
+                            "confidence": categorisation.get(
+                                "confidence", ml_confidence
+                            ),
+                            "code": categorisation.get("sic_code", "N/A"),
+                            "code_description": categorisation.get(
+                                "sic_description", "N/A"
+                            ),
+                        },
+                    )
 
                     for candidate in candidates:
-                        initial_candidates.append(Candidate(confidence=candidate.get("confidence", 0.0),
-                                                            code=candidate.get("code", "N/A"),
-                                                            description=candidate.get("code_description", "N/A")))
+                        initial_candidates.append(
+                            Candidate(
+                                confidence=candidate.get("confidence", 0.0),
+                                code=candidate.get("code", "N/A"),
+                                description=candidate.get("code_description", "N/A"),
+                            )
+                        )
 
                     # Add the classification to the initial classification
-                    initial_classification = Classification(ml_code=categorisation.get("sic_code", "N/A"),
-                                                            ml_description=categorisation.get("sic_description", "N/A"),
-                                                            ml_confidence=ml_confidence,
-                                                            candidates=initial_candidates,
-                                                            justification=justification)
+                    initial_classification = Classification(
+                        ml_code=categorisation.get("sic_code", "N/A"),
+                        ml_description=categorisation.get("sic_description", "N/A"),
+                        ml_confidence=ml_confidence,
+                        candidates=initial_candidates,
+                        justification=justification,
+                    )
                 else:
                     categorisation = interaction.get("response", {})
                     justification = categorisation.get("reasoning", "")
@@ -216,16 +251,22 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
 
                     for candidate in candidates:
                         conf = candidate.get("likelihood", 0.0)
-                        final_candidates.append(Candidate(confidence=conf,
-                                                          code=candidate.get("sic_code", "N/A"),
-                                                          description=candidate.get("sic_descriptive", "N/A")))
+                        final_candidates.append(
+                            Candidate(
+                                confidence=conf,
+                                code=candidate.get("sic_code", "N/A"),
+                                description=candidate.get("sic_descriptive", "N/A"),
+                            )
+                        )
 
                     # Add the classification to the final classification
-                    final_classification = Classification(ml_code=categorisation.get("sic_code", "N/A"),
-                                                          ml_description=categorisation.get("sic_description", "N/A"),
-                                                          ml_confidence=ml_confidence,
-                                                          candidates=final_candidates,
-                                                          justification=justification)
+                    final_classification = Classification(
+                        ml_code=categorisation.get("sic_code", "N/A"),
+                        ml_description=categorisation.get("sic_description", "N/A"),
+                        ml_confidence=ml_confidence,
+                        candidates=final_candidates,
+                        justification=justification,
+                    )
 
         # Calculate times
         times = calculate_times(response)
@@ -234,14 +275,24 @@ def process_survey_responses(bucket_name, base_folder, user, date):  # noqa: C90
         test_id = create_test_id(time_start, user, job_title)
 
         # Create the result object
-        result = Result(id=test_id,
-                        type="sic",
-                        questions=questions_results,
-                        interactions=interactions_results,
-                        classification={"initial": initial_classification, "final": final_classification},
-                        times=Times(total_time_secs=times["total_time_secs"],
-                                    interaction_time_secs=times["interaction_time_secs"]),
-                        notes=[Note(text=note.get("text"), expected_code=note.get("code")) for note in notes])
+        result = Result(
+            id=test_id,
+            type="sic",
+            questions=questions_results,
+            interactions=interactions_results,
+            classification={
+                "initial": initial_classification,
+                "final": final_classification,
+            },
+            times=Times(
+                total_time_secs=times["total_time_secs"],
+                interaction_time_secs=times["interaction_time_secs"],
+            ),
+            notes=[
+                Note(text=note.get("text"), expected_code=note.get("code"))
+                for note in notes
+            ],
+        )
         results.append(result)
     return results
 
@@ -265,7 +316,11 @@ def print_test_results(results, detailed=False):
         initial_justification = result.classification["initial"].justification
         test_notes = result.notes[0].text if result.notes else "N/A"
         times = result.times
-        result_status = "N/A" if expected_sic == "N/A" else ("Pass" if expected_sic == final_sic else "Fail")
+        result_status = (
+            "N/A"
+            if expected_sic == "N/A"
+            else ("Pass" if expected_sic == final_sic else "Fail")
+        )
 
         if result_status == "Pass":
             pass_count += 1
@@ -284,17 +339,23 @@ def print_test_results(results, detailed=False):
 
         # If detailed is True, print additional information
         if detailed:
-            print(f"Final SIC Confidence: {result.classification['final'].ml_confidence}")
+            print(
+                f"Final SIC Confidence: {result.classification['final'].ml_confidence}"
+            )
             # Print all final candidates with incremented index
-            for x, candidate in enumerate(result.classification['final'].candidates, 1):
+            for x, candidate in enumerate(result.classification["final"].candidates, 1):
                 print(f"Final Alternative SIC {x}: {candidate.code}")
                 print(f"Final Alternative SIC confidence {x}: {candidate.confidence}")
 
             print(f"Final Justification: {final_justification}")
 
-            print(f"Initial SIC Confidence: {result.classification['initial'].ml_confidence}")
+            print(
+                f"Initial SIC Confidence: {result.classification['initial'].ml_confidence}"
+            )
             # Print all initial candidates with incremented index
-            for x, candidate in enumerate(result.classification['initial'].candidates, 1):
+            for x, candidate in enumerate(
+                result.classification["initial"].candidates, 1
+            ):
                 print(f"Initial Alternative SIC {x}: {candidate.code}")
                 print(f"Initial Alternative SIC confidence {x}: {candidate.confidence}")
 
@@ -340,10 +401,9 @@ def process_users(bucket_name, base_folder, users, start_date):
     for user in users:
         for date in date_range:
             print(f"Processing responses for user: {user} on date: {date}")
-            results = process_survey_responses(bucket_name=bucket_name,
-                                               base_folder=base_folder,
-                                               user=user,
-                                               date=date)
+            results = process_survey_responses(
+                bucket_name=bucket_name, base_folder=base_folder, user=user, date=date
+            )
             if results:
                 all_results.extend(results)
 
@@ -353,12 +413,15 @@ def process_users(bucket_name, base_folder, users, start_date):
 def filter_and_write_csv(df, csv_path, drop_columns=False):
     # Identify columns matching the patterns
     columns_to_check = ["Question", "Response", "Interaction", "Interaction_Response"]
-    threshold_map = {"Question": 4, "Response": 4, "Interaction": 3, "Interaction_Response": 3}
+    threshold_map = {
+        "Question": 4,
+        "Response": 4,
+        "Interaction": 3,
+        "Interaction_Response": 3,
+    }
 
     # Build regex pattern
-    regex_patterns = [
-        fr"{col}_\d+" for col in columns_to_check
-    ]
+    regex_patterns = [rf"{col}_\d+" for col in columns_to_check]
 
     columns_to_drop = []
     for col in df.columns:
@@ -385,14 +448,17 @@ def filter_and_write_csv(df, csv_path, drop_columns=False):
 def filter_and_split_dataframe(df, bucket_name, csv_path, drop_columns=False):
     # Identify columns matching the patterns
     columns_to_check = ["Question", "Response", "Interaction", "Interaction_Response"]
-    threshold_map = {"Question": 4, "Response": 4, "Interaction": 3, "Interaction_Response": 3}
+    threshold_map = {
+        "Question": 4,
+        "Response": 4,
+        "Interaction": 3,
+        "Interaction_Response": 3,
+    }
 
     dropped_csv = bool(drop_columns)
 
     # Build regex pattern for matching the column names
-    regex_patterns = [
-        fr"{col}_\d+" for col in columns_to_check
-    ]
+    regex_patterns = [rf"{col}_\d+" for col in columns_to_check]
 
     # List to store columns to drop
     columns_to_drop = []
@@ -409,8 +475,10 @@ def filter_and_split_dataframe(df, bucket_name, csv_path, drop_columns=False):
     print(columns_to_drop)
 
     # Create a second DataFrame with the dropped columns + 'Test_ID' and 'Job_Title'
-    additional_columns = ['Test_ID', 'Job_Title']
-    existing_additional_columns = [col for col in additional_columns if col in df.columns]
+    additional_columns = ["Test_ID", "Job_Title"]
+    existing_additional_columns = [
+        col for col in additional_columns if col in df.columns
+    ]
     second_df_columns = columns_to_drop + existing_additional_columns
     second_df = df[second_df_columns]
 
@@ -425,17 +493,28 @@ def filter_and_split_dataframe(df, bucket_name, csv_path, drop_columns=False):
 
     # Check if any of the columns to filter on exist in second_df
     columns_to_check_rows = [
-        "Question_4", "Response_4", "Interaction_3", "Interaction_Response_3"
+        "Question_4",
+        "Response_4",
+        "Interaction_3",
+        "Interaction_Response_3",
     ]
 
     # Filter rows in the second DataFrame where all of the checked columns are empty
-    existing_columns_to_check_rows = [col for col in columns_to_check_rows if col in second_df.columns]
+    existing_columns_to_check_rows = [
+        col for col in columns_to_check_rows if col in second_df.columns
+    ]
 
     if existing_columns_to_check_rows:
-        second_df = second_df[second_df[existing_columns_to_check_rows].notna().any(axis=1)]
-        print("Rows with empty 'Question_4', 'Response_4', 'Interaction_3', or 'Interaction_Response_3' removed.")
+        second_df = second_df[
+            second_df[existing_columns_to_check_rows].notna().any(axis=1)
+        ]
+        print(
+            "Rows with empty 'Question_4', 'Response_4', 'Interaction_3', or 'Interaction_Response_3' removed."
+        )
     else:
-        print("None of the specified columns for filtering are present in the second DataFrame.")
+        print(
+            "None of the specified columns for filtering are present in the second DataFrame."
+        )
         dropped_csv = False
 
     print("Main DF:", df.columns)
@@ -473,9 +552,13 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
     # ]
 
     basic_csv = [
-        "Test_ID", "Job_Title", "Final_Most_Likely_SIC",
-        "Initial_Most_Likely_SIC", "Final_SIC_Confidence",
-        "Initial_SIC_Confidence", "Test_Notes"
+        "Test_ID",
+        "Job_Title",
+        "Final_Most_Likely_SIC",
+        "Initial_Most_Likely_SIC",
+        "Final_SIC_Confidence",
+        "Initial_SIC_Confidence",
+        "Test_Notes",
     ]
 
     # Collect all potential column names
@@ -485,17 +568,30 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
     max_interactions = 0
 
     for result in results:
-        max_final_candidates = max(max_final_candidates, len(result.classification["final"].candidates))
-        max_initial_candidates = max(max_initial_candidates, len(result.classification["initial"].candidates))
+        max_final_candidates = max(
+            max_final_candidates, len(result.classification["final"].candidates)
+        )
+        max_initial_candidates = max(
+            max_initial_candidates, len(result.classification["initial"].candidates)
+        )
         max_questions = max(max_questions, len(result.questions))
         max_interactions = max(max_interactions, len(result.interactions))
 
     # Base column order
     column_order = [
-        "Test_ID", "Job_Title", "Final_Most_Likely_SIC", "Initial_Most_Likely_SIC",
-        "Final_SIC_Confidence", "Initial_SIC_Confidence",
-        "Total_Time_Secs", "Interaction_Time_Secs", "Final_Justification", "Initial_Justification",
-        "Expected_SIC", "Result", "Test_Notes",
+        "Test_ID",
+        "Job_Title",
+        "Final_Most_Likely_SIC",
+        "Initial_Most_Likely_SIC",
+        "Final_SIC_Confidence",
+        "Initial_SIC_Confidence",
+        "Total_Time_Secs",
+        "Interaction_Time_Secs",
+        "Final_Justification",
+        "Initial_Justification",
+        "Expected_SIC",
+        "Result",
+        "Test_Notes",
     ]
 
     # Add columns for final and initial candidates
@@ -530,7 +626,11 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         initial_justification = result.classification["initial"].justification
         test_notes = result.notes[0].text if result.notes else "N/A"
         times = result.times
-        result_status = "N/A" if expected_sic == "N/A" else ("Pass" if expected_sic == final_sic else "Fail")
+        result_status = (
+            "N/A"
+            if expected_sic == "N/A"
+            else ("Pass" if expected_sic == final_sic else "Fail")
+        )
 
         if result_status == "Pass":
             pass_count += 1
@@ -597,7 +697,9 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
 
     # Reorder columns in the DataFrame
     # Ensure columns not in `column_order` are added to the end
-    ordered_columns = column_order + [col for col in df.columns if col not in column_order]
+    ordered_columns = column_order + [
+        col for col in df.columns if col not in column_order
+    ]
 
     df = df[ordered_columns]
 
@@ -615,10 +717,10 @@ def count_test_ids_by_user(username, df):
         int: The count of rows where 'test_id' starts with the transformed username.
     """
     # Replace '.' in username with '' to match the format in test_id
-    formatted_username = username.replace('.', '')
+    formatted_username = username.replace(".", "")
 
     # Filter rows where 'test_id' starts with the formatted username
-    count = df['Test_ID'].str.startswith(formatted_username).sum()
+    count = df["Test_ID"].str.startswith(formatted_username).sum()
 
     return count
 
@@ -635,17 +737,21 @@ def count_sic_changes(df):
         dict: A dictionary with counts for 'same' and 'different' rows.
     """
     # Check if the columns exist in the DataFrame
-    if "Final_Most_Likely_SIC" not in df.columns or "Initial_Most_Likely_SIC" not in df.columns:
-        raise ValueError("DataFrame must contain 'Final_Most_Likely_SIC' and 'Initial_Most_Likely_SIC' columns.")
+    if (
+        "Final_Most_Likely_SIC" not in df.columns
+        or "Initial_Most_Likely_SIC" not in df.columns
+    ):
+        raise ValueError(
+            "DataFrame must contain 'Final_Most_Likely_SIC' and 'Initial_Most_Likely_SIC' columns."
+        )
 
     # Calculate the counts
     same_count = (df["Final_Most_Likely_SIC"] == df["Initial_Most_Likely_SIC"]).sum()
-    different_count = (df["Final_Most_Likely_SIC"] != df["Initial_Most_Likely_SIC"]).sum()
+    different_count = (
+        df["Final_Most_Likely_SIC"] != df["Initial_Most_Likely_SIC"]
+    ).sum()
 
-    return {
-        "same": same_count,
-        "different": different_count
-    }
+    return {"same": same_count, "different": different_count}
 
 
 def calculate_average_interaction_time(df):
@@ -719,12 +825,12 @@ def generate_user_cards(user_totals):
     html_output = ""
 
     for user in user_totals:
-        if user.get('user') and user.get('total') is not None:
-            user_name = user['user']
-            total_tests = user['total']
+        if user.get("user") and user.get("total") is not None:
+            user_name = user["user"]
+            total_tests = user["total"]
 
             # Generate the HTML string for each user
-            user_card_html = f'''
+            user_card_html = f"""
             <div class="ons-grid__col ons-col-3@m">
                 <div class="card">
                     <div class="number">{total_tests}</div>
@@ -732,7 +838,7 @@ def generate_user_cards(user_totals):
                 </div>
                 <br></br>
             </div>
-            '''
+            """
 
             # Append the generated card to the output
             html_output += user_card_html
@@ -802,14 +908,14 @@ def format_users_for_checkboxes(users):
     for user in users:
         user_id = user.split("@")[0].replace(".", "-").replace(" ", "-").lower()
         user_value = user.split("@")[0].lower()
-        formatted_users.append({
-            "id": f"user-checkbox-{user_id}",
-            "name": "users",
-            "label": {
-                "text": user_value
-            },
-            "value": user_value
-        })
+        formatted_users.append(
+            {
+                "id": f"user-checkbox-{user_id}",
+                "name": "users",
+                "label": {"text": user_value},
+                "value": user_value,
+            }
+        )
     return formatted_users
 
 
@@ -844,9 +950,7 @@ def stream_file_from_store(bucket_name, source_blob_name):
         return Response(
             generate(),
             mimetype="application/octet-stream",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}"
-            }
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     except Exception as e:
         print(f"An error occurred while streaming the file: {e}")

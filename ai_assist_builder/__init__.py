@@ -4,7 +4,16 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 
 import requests
-from flask import Flask, json, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    json,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_misaka import Misaka
 from google.cloud import storage
 
@@ -18,7 +27,11 @@ from ai_assist_builder.utils.classification_utils import (
     save_classification_response,
     update_last_survey_response,
 )
-from ai_assist_builder.utils.jwt_utils import check_and_refresh_token, current_utc_time, generate_jwt
+from ai_assist_builder.utils.jwt_utils import (
+    check_and_refresh_token,
+    current_utc_time,
+    generate_jwt,
+)
 from ai_assist_builder.utils.results_utils import (
     calculate_average_excluding_max,
     count_sic_changes,
@@ -31,7 +44,10 @@ from ai_assist_builder.utils.results_utils import (
     process_users,
     stream_file_from_store,
 )
-from ai_assist_builder.utils.template_utils import datetime_to_string, render_classification_results
+from ai_assist_builder.utils.template_utils import (
+    datetime_to_string,
+    render_classification_results,
+)
 
 DEBUG = True
 TOKEN_EXPIRY = 3600  # 1 hour
@@ -53,10 +69,9 @@ api_gateway = os.getenv("API_GATEWAY")
 
 token_start_time = current_utc_time()
 # Generate JWT (lasts 1 hour - TODO rotate before expiry)
-jwt_token = generate_jwt(jwt_secret_path,
-                         audience=api_gateway,
-                         sa_email=sa_email,
-                         expiry_length=TOKEN_EXPIRY)
+jwt_token = generate_jwt(
+    jwt_secret_path, audience=api_gateway, sa_email=sa_email, expiry_length=TOKEN_EXPIRY
+)
 # Print the last 5 digits of the jwt token
 print(f"JWT Token ends with {jwt_token[-5:]} created at {token_start_time}")
 
@@ -70,12 +85,14 @@ with open("ai_assist_builder/content/condensed_tlfs_sic_soc.json") as file:
 # Initialise user survey data
 # TODO - make a utility function
 user_survey = {
-    "survey": {"user": "",
-               "questions": [],
-               "time_start": None,
-               "time_end": None,
-               "survey_assist_time_start": None,
-               "survey_assist_time_end": None}
+    "survey": {
+        "user": "",
+        "questions": [],
+        "time_start": None,
+        "time_end": None,
+        "survey_assist_time_start": None,
+        "survey_assist_time_end": None,
+    }
 }
 
 Misaka(app)
@@ -99,11 +116,9 @@ storage_client = storage.Client()
 def before_request():
     global token_start_time, jwt_token
     """Check token status before processing the request."""
-    token_start_time, jwt_token = check_and_refresh_token(token_start_time,
-                                                          jwt_token,
-                                                          jwt_secret_path,
-                                                          api_gateway,
-                                                          sa_email)
+    token_start_time, jwt_token = check_and_refresh_token(
+        token_start_time, jwt_token, jwt_secret_path, api_gateway, sa_email
+    )
 
 
 @app.route("/save_as_csv", methods=["GET", "POST"])
@@ -113,17 +128,20 @@ def save_as_csv():
     users = result_selection.get("users", [])
     start_date = result_selection.get("start_date", "")
 
-    all_results = process_users(bucket_name=BUCKET_NAME,
-                                base_folder="TLFS_PoC",
-                                users=users,
-                                start_date=start_date)
+    all_results = process_users(
+        bucket_name=BUCKET_NAME,
+        base_folder="TLFS_PoC",
+        users=users,
+        start_date=start_date,
+    )
 
     if all_results:
         # Generate a dataframe with results
         df = generate_test_results_df(all_results, detailed=True)
 
-        results_path = generate_results_filename(user=session["user"],
-                                                 base_folder="TLFS_PoC")
+        results_path = generate_results_filename(
+            user=session["user"], base_folder="TLFS_PoC"
+        )
 
         # Save to store
         filter_and_split_dataframe(df, BUCKET_NAME, results_path, drop_columns=True)
@@ -166,10 +184,12 @@ def get_result():
         session["result_selection"]["users"] = users
         session.modified = True
 
-        all_results = process_users(bucket_name=BUCKET_NAME,
-                                    base_folder="TLFS_PoC",
-                                    users=users,
-                                    start_date=start_date)
+        all_results = process_users(
+            bucket_name=BUCKET_NAME,
+            base_folder="TLFS_PoC",
+            users=users,
+            start_date=start_date,
+        )
 
         if all_results:
             # Generate a dataframe with results
@@ -188,7 +208,9 @@ def get_result():
             sic_changes = count_sic_changes(df)
             results["sic_same"] = sic_changes["same"]
             results["sic_different"] = sic_changes["different"]
-            results["avg_interaction_time"] = round(calculate_average_excluding_max(df), 1)
+            results["avg_interaction_time"] = round(
+                calculate_average_excluding_max(df), 1
+            )
 
             print("Results:", results)
 
@@ -212,9 +234,9 @@ def get_result():
         testing_users = get_users_by_roles("admin", "tester")
         print(f"Testing users: {testing_users}")
         user_checkboxes = format_users_for_checkboxes(testing_users)
-        return render_template("testing_admin.html",
-                               results=results,
-                               user_checkboxes=user_checkboxes)
+        return render_template(
+            "testing_admin.html", results=results, user_checkboxes=user_checkboxes
+        )
 
 
 # Only allowed for admin and tester roles
@@ -235,8 +257,7 @@ def testing_admin():
     user_checkboxes = format_users_for_checkboxes(testing_users)
 
     print(f"User checkboxes: {user_checkboxes}")
-    return render_template("testing_admin.html",
-                           user_checkboxes=user_checkboxes)
+    return render_template("testing_admin.html", user_checkboxes=user_checkboxes)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -259,7 +280,9 @@ def check_login():
         print(f"User {email.split("@")[0]} logged in with role {session['role']}")
         return redirect("/")
     else:
-        return render_template("login.html", error="Invalid credentials. Please try again.")
+        return render_template(
+            "login.html", error="Invalid credentials. Please try again."
+        )
 
 
 @app.route("/")
@@ -361,13 +384,13 @@ def survey_assist():
         "job_description": user_response.get("job_description"),
         "org_description": user_response.get("organisation_activity"),
     }
-    headers = {
-        "Authorization": f"Bearer {jwt_token}"
-    }
+    headers = {"Authorization": f"Bearer {jwt_token}"}
 
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
+        response = requests.post(
+            api_url, json=body, headers=headers, timeout=API_TIMER_SEC
+        )
         response_data = response.json()
 
         api_response = map_api_response_to_internal(response_data)
@@ -450,9 +473,7 @@ def survey_assist():
         )
         session.modified = True
 
-        return render_template(
-            "question_template.html", **mapped_question.to_dict()
-        )
+        return render_template("question_template.html", **mapped_question.to_dict())
     except Exception as e:
         # Handle errors and return an appropriate message
         return jsonify({"error": str(e)}), 500
@@ -562,17 +583,21 @@ def survey_assist_results():
 
         # Calculate the time taken to answer the survey
         time_taken = (
-            survey_responses["survey"]["time_end"] - survey_responses["survey"]["time_start"]
+            survey_responses["survey"]["time_end"]
+            - survey_responses["survey"]["time_start"]
         ).total_seconds()
 
         # Calculate the time taken to interact with Survey Assist
         survey_assist_time = (
-            survey_responses["survey"]["survey_assist_time_end"] - survey_responses["survey"]["survey_assist_time_start"]
+            survey_responses["survey"]["survey_assist_time_end"]
+            - survey_responses["survey"]["survey_assist_time_start"]
         ).total_seconds()
 
         # Find the SIC classification questions from the survey
         classification_questions = get_questions_by_classification(survey_data, "sic")
-        filtered_responses = filter_classification_responses(survey_responses, classification_questions)
+        filtered_responses = filter_classification_responses(
+            survey_responses, classification_questions
+        )
 
         print("Filtered responses:", filtered_responses)
 
@@ -583,13 +608,21 @@ def survey_assist_results():
         # In updated_responses, find the org description
         # question
         ORG_QUESTION = "At your main job, describe the main activity of the business"
-        org_description_question = [question for question in updated_responses if question["question_text"].startswith(ORG_QUESTION)] # noqaE501
+        org_description_question = [
+            question
+            for question in updated_responses
+            if question["question_text"].startswith(ORG_QUESTION)
+        ]
         if org_description_question:
             print("Organisation description:", org_description_question[0]["response"])
 
         # search survey_questions and get a list of the questions whose
         # question_id starts with "f"
-        followup_questions = [question for question in survey_questions if question["question_id"].startswith("f")]
+        followup_questions = [
+            question
+            for question in survey_questions
+            if question["question_id"].startswith("f")
+        ]
 
         # If follow up questions were asked print them
         print("Follow-up questions:", followup_questions)
@@ -603,38 +636,47 @@ def survey_assist_results():
                     for response in question["response_options"]:
                         if response["value"] != "none of the above":
                             # Add the response to the organisation description
-                            org_description_question[0]["response"] += f". Organisation is NOT {response['value']}"
+                            org_description_question[0][
+                                "response"
+                            ] += f". Organisation is NOT {response['value']}"
                 else:
                     # Add the response to the organisation description
-                    org_description_question[0]["response"] += f". Organisation is {question['response']}"
+                    org_description_question[0][
+                        "response"
+                    ] += f". Organisation is {question['response']}"
 
         # copy the sa_response and remove the first entry of
         # the candidates
         # TODO - this removes the first candidate, the copy is not needed
         # as it is not a deep copy and sa_response_presentation is not used
         sa_response_presentation = sa_response.copy()
-        sa_response_presentation["categorisation"]["codings"] = sa_response_presentation["categorisation"]["codings"][1:]
+        sa_response_presentation["categorisation"]["codings"] = (
+            sa_response_presentation["categorisation"]["codings"][1:]
+        )
 
         # print("Filtered responses:", filtered_responses)
-        html_output = render_classification_results(sa_response,
-                                                    filtered_responses,
-                                                    time_taken,
-                                                    survey_assist_time)
+        html_output = render_classification_results(
+            sa_response, filtered_responses, time_taken, survey_assist_time
+        )
 
-        sa_result = [{"interaction": "classification",
-                      "type": "sic",
-                      "title": "Initial SIC",
-                      "html_output": html_output}]
+        sa_result = [
+            {
+                "interaction": "classification",
+                "type": "sic",
+                "title": "Initial SIC",
+                "html_output": html_output,
+            }
+        ]
 
-        print("Updated organisation description:", org_description_question[0]["response"])
+        print(
+            "Updated organisation description:", org_description_question[0]["response"]
+        )
 
         filtered_responses[2]["response"] = org_description_question[0]["response"]
 
-        updated_classification = get_classification(backend_api_url,
-                                                    jwt_token,
-                                                    "gemini",
-                                                    "sic",
-                                                    filtered_responses)
+        updated_classification = get_classification(
+            backend_api_url, jwt_token, "gemini", "sic", filtered_responses
+        )
 
         # Add the updated classification to the session data
         save_classification_response(session, updated_classification)
@@ -644,25 +686,29 @@ def survey_assist_results():
         updated_api_response = map_api_response_to_internal(updated_classification)
 
         # Remove the first candidate from the classification
-        updated_api_response["categorisation"]["codings"] = updated_api_response["categorisation"]["codings"][1:]
+        updated_api_response["categorisation"]["codings"] = updated_api_response[
+            "categorisation"
+        ]["codings"][1:]
 
         # TODO - need to store updated_api_response and sa_response
         # in the session data so they can be saved to the API
 
         # Render the updated classification results
-        html_output = render_classification_results(updated_api_response,
-                                                    filtered_responses,
-                                                    time_taken,
-                                                    survey_assist_time)
+        html_output = render_classification_results(
+            updated_api_response, filtered_responses, time_taken, survey_assist_time
+        )
 
-        sa_result.insert(0,
-                         {"interaction": "classification",
-                          "type": "final-sic",
-                          "title": "Final - SIC",
-                          "html_output": html_output})
+        sa_result.insert(
+            0,
+            {
+                "interaction": "classification",
+                "type": "final-sic",
+                "title": "Final - SIC",
+                "html_output": html_output,
+            },
+        )
 
-        return render_template("classification_template.html",
-                               sa_result=sa_result)
+        return render_template("classification_template.html", sa_result=sa_result)
     else:
         print("Session data not found")
         return redirect(url_for("thank_you", survey=SURVEY_NAME))
@@ -681,12 +727,15 @@ def save_results():
     time_dict = {
         "time_start": survey_data["survey"]["time_start"],
         "time_end": survey_data["survey"]["time_end"],
-        "survey_assist_time_start": survey_data
-        ["survey"]["survey_assist_time_start"],
-        "survey_assist_time_end": survey_data
-        ["survey"]["survey_assist_time_end"],
+        "survey_assist_time_start": survey_data["survey"]["survey_assist_time_start"],
+        "survey_assist_time_end": survey_data["survey"]["survey_assist_time_end"],
     }
-    fields = ["time_start", "time_end", "survey_assist_time_start", "survey_assist_time_end"]
+    fields = [
+        "time_start",
+        "time_end",
+        "survey_assist_time_start",
+        "survey_assist_time_end",
+    ]
     times = datetime_to_string(time_dict, fields)
     print("=====TIMES=====")
     print(times)
@@ -717,7 +766,7 @@ def save_results():
         {
             "type": "classification",
             "response": json.dumps(response),
-            "interaction_sequence": index + 1
+            "interaction_sequence": index + 1,
         }
         for index, response in enumerate(sa_response)
     ]
@@ -742,28 +791,25 @@ def save_results():
                         "survey_assist_time_end": times["survey_assist_time_end"],
                         "survey_schema": {
                             "core_questions": questions,
-                            "survey_assist": ai_assist
+                            "survey_assist": ai_assist,
                         },
                         "survey_response": {
                             "questions": survey_data["survey"]["questions"]
-                        }
+                        },
                     }
                 ],
-                "survey_assist":
-                {
-                    "interactions": sa_response_list
-                }
+                "survey_assist": {"interactions": sa_response_list},
             }
         ],
     }
 
-    headers = {
-        "Authorization": f"Bearer {jwt_token}"
-    }
+    headers = {"Authorization": f"Bearer {jwt_token}"}
     # make an api request
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
+        response = requests.post(
+            api_url, json=body, headers=headers, timeout=API_TIMER_SEC
+        )
 
         if response.status_code != HTTPStatus.OK or not response.json():
             return redirect(url_for("error_page"))
@@ -771,30 +817,33 @@ def save_results():
         # Else update the saved result with the test notes
         # TODO - this is a temporary solution, needs integrating
         # with the API
-        saved_response = get_last_survey_response(bucket_name=BUCKET_NAME,
-                                                  base_folder="TLFS_PoC",
-                                                  user=user)
+        saved_response = get_last_survey_response(
+            bucket_name=BUCKET_NAME, base_folder="TLFS_PoC", user=user
+        )
 
         print(f"Saved response: {saved_response}")
         print("Saved response type:", type(saved_response))
-        print("Saved response Job Title:",
-              saved_response["response"]["survey_response"]["questions"][1]["response"])
+        print(
+            "Saved response Job Title:",
+            saved_response["response"]["survey_response"]["questions"][1]["response"],
+        )
 
         notes = {
-            "notes": [{
-                "code": request.form.get("expected-code"),
-                "text": request.form.get("test-notes"),
-            }]
+            "notes": [
+                {
+                    "code": request.form.get("expected-code"),
+                    "text": request.form.get("test-notes"),
+                }
+            ]
         }
 
-        update_last_survey_response(bucket_name=BUCKET_NAME,
-                                    base_folder="TLFS_PoC",
-                                    user=user,
-                                    new_fields=notes)
+        update_last_survey_response(
+            bucket_name=BUCKET_NAME, base_folder="TLFS_PoC", user=user, new_fields=notes
+        )
 
-        updated_response = get_last_survey_response(bucket_name=BUCKET_NAME,
-                                                    base_folder="TLFS_PoC",
-                                                    user=user)
+        updated_response = get_last_survey_response(
+            bucket_name=BUCKET_NAME, base_folder="TLFS_PoC", user=user
+        )
 
         print(f"Updated response: {updated_response}")
         print(f"Updates response notes: {updated_response['notes']}")
@@ -823,11 +872,15 @@ def summary():
     survey_data["survey"]["time_end"] = datetime.now(timezone.utc)
     session.modified = True
 
-    print(survey_data["survey"]["time_start"], survey_data["survey"]["time_start"].tzinfo)
+    print(
+        survey_data["survey"]["time_start"], survey_data["survey"]["time_start"].tzinfo
+    )
     print(survey_data["survey"]["time_end"], survey_data["survey"]["time_end"].tzinfo)
 
     # Print the time taken in seconds to answer the survey
-    time_taken = (survey_data["survey"]["time_end"] - survey_data["survey"]["time_start"]).total_seconds()
+    time_taken = (
+        survey_data["survey"]["time_end"] - survey_data["survey"]["time_start"]
+    ).total_seconds()
     print("--------TIMING--------")
     print("Time taken to complete survey:", time_taken)
     print("----------------------")
@@ -1114,7 +1167,9 @@ def followup_redirect():
                         "question_id": mapped_question_data.get("question_id"),
                         "question_text": mapped_question_data.get("question_text"),
                         "response_type": mapped_question_data.get("response_type"),
-                        "response_options": mapped_question_data.get("response_options"),
+                        "response_options": mapped_question_data.get(
+                            "response_options"
+                        ),
                         "response": None,  # added after user input
                         "response_name": response_name,
                     }
@@ -1185,7 +1240,9 @@ def update_session_and_redirect(key, value, route):
             "response_options": current_question.get("response_options"),
             "response_name": current_question.get("response_name"),
             "response": request.form.get(value),
-            "used_for_classifications": current_question.get("used_for_classifications"),
+            "used_for_classifications": current_question.get(
+                "used_for_classifications"
+            ),
         }
     )
 
@@ -1195,9 +1252,9 @@ def update_session_and_redirect(key, value, route):
     if ai_assist.get("enabled", True):
         session.modified = True
         interactions = ai_assist.get("interactions")
-        if len(interactions) > 0 and current_question.get("question_id") == interactions[0].get(
-            "after_question_id"
-        ):
+        if len(interactions) > 0 and current_question.get(
+            "question_id"
+        ) == interactions[0].get("after_question_id"):
             # print("AI Assist interaction detected - REDIRECTING to consent")
             return redirect(url_for("survey_assist_consent"))
 

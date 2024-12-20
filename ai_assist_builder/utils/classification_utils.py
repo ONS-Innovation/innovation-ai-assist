@@ -48,10 +48,7 @@ def filter_classification_responses(survey_data, classified_questions):
 
     # Filter the questions based on the classified_questions keys (question_ids)
     filtered_responses = [
-        {
-            "question_text": question["question_text"],
-            "response": question["response"]
-        }
+        {"question_text": question["question_text"], "response": question["response"]}
         for question in survey_questions
         if question["question_id"] in classified_questions
     ]
@@ -72,7 +69,7 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
     Returns:
         response_data (dict): The response data from the API.
     """
-    api_url = backend_api_url+"/survey-assist/classify"
+    api_url = backend_api_url + "/survey-assist/classify"
     print("SENDING REQUEST API URL:", api_url)
     body = {
         "llm": llm,
@@ -82,13 +79,13 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
         "org_description": input_data[2]["response"],
     }
 
-    headers = {
-        "Authorization": f"Bearer {jwt_token}"
-    }
+    headers = {"Authorization": f"Bearer {jwt_token}"}
 
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
+        response = requests.post(
+            api_url, json=body, headers=headers, timeout=API_TIMER_SEC
+        )
         response_data = response.json()
 
         return response_data

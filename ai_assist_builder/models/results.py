@@ -44,10 +44,9 @@ class Result:
     type: str = ""
     questions: List[QuestionInteraction] = field(default_factory=list)
     interactions: List[QuestionInteraction] = field(default_factory=list)
-    classification: dict = field(default_factory=lambda: {
-        "initial": Classification(),
-        "final": Classification()
-    })
+    classification: dict = field(
+        default_factory=lambda: {"initial": Classification(), "final": Classification()}
+    )
     times: Times = field(default_factory=Times)
     notes: List[Note] = field(default_factory=list)
 

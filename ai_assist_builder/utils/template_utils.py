@@ -1,5 +1,6 @@
+from datetime import datetime
+
 from jinja2 import Template
-from datetime import datetime, timezone
 
 
 def datetime_to_string(data, fields, format="%Y-%m-%d %H:%M:%S %Z"):
@@ -32,10 +33,9 @@ def string_to_datetime(data, fields, format="%Y-%m-%d %H:%M:%S %Z"):
 
 # Function to render the classification results from Survey Assist
 # This function will render the classification results in an HTML format
-def render_classification_results(response_data,
-                                  question_responses,
-                                  survey_time,
-                                  survey_assist_time):
+def render_classification_results(
+    response_data, question_responses, survey_time, survey_assist_time
+):
 
     question_response_dict = {
         question["question_text"]: question["response"]
@@ -79,7 +79,7 @@ def render_classification_results(response_data,
         categorisation=response_data.get("categorisation", {}),
         question_responses=question_response_dict,
         survey_time=survey_time,
-        survey_assist_time=survey_assist_time
+        survey_assist_time=survey_assist_time,
     )
 
     return rendered_html
