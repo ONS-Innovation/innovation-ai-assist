@@ -24,6 +24,9 @@ ruff = "^0.7.3"
 flake8 = "^7.1.1"
 isort = "^5.13.2"
 
+[tool.isort]
+profile = "black"
+
 [tool.ruff]
 line-length = 120
 indent-width = 4

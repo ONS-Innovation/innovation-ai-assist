@@ -1,4 +1,4 @@
-import json
+import json  # noqa: I001
 import os
 import re
 from datetime import datetime, timedelta
@@ -7,13 +7,13 @@ import pandas as pd
 from flask import Response
 from google.cloud import storage
 
+from ai_assist_builder.models.results import Times  # noqa: I001, RUF100
 from ai_assist_builder.models.results import (
     Candidate,
     Classification,
     Note,
     QuestionInteraction,
     Result,
-    Times,
 )
 
 
