@@ -4,7 +4,8 @@
 {% from "components/panel/_macro.njk" import onsPanel %}
 {% from "components/list/_macro.njk" import onsList %}
 {% from "components/tabs/_macro.njk" import onsTabs %}
-
+{% from "components/textarea/_macro.njk" import onsTextarea %}
+{% from "components/input/_macro.njk" import onsInput %}
 
 
 {% set pageConfig = {
@@ -90,13 +91,37 @@
     })
 }}
 
-<br>
-
-{{ onsButton({
-    "id": "submit-button",
-    "text": "Save and Continue",
-    "variants": 'loader',
-    "url": url_for('save_results'),
-}) }}
+<form method="POST" action="{{ url_for('save_results') }}">
+    <hr>
+    <p></p>
+    {{
+        onsInput({
+            "id": "expected-code",
+            "name": "expected-code",
+            "type": "number",
+            "width": "6",
+            "autocomplete": "off",
+            "label": {
+                "text": "Expected Classification Number"
+            }
+        })
+    }}
+    {{
+        onsTextarea({
+            "id": "test-notes",
+            "name": "test-notes",
+            "label": {
+                "text": "Notes",
+                "description": "Any notes you want to capture about the testing of this survey"
+            }
+        })
+    }}
+    <br>
+    {{ onsButton({
+        "id": "submit-button",
+        "text": "Save and Continue",
+        "variants": 'loader',
+    }) }}
+</form>
 
 {% endblock %}

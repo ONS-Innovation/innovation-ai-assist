@@ -1,0 +1,1090 @@
+{
+    "survey_responses": [
+        {
+            "response": {
+                "time_start": "2024-12-16 13:33:32 UTC",
+                "time_end": "2024-12-16 13:34:49 UTC",
+                "survey_assist_time_start": "2024-12-16 13:34:08 UTC",
+                "survey_assist_time_end": "2024-12-16 13:34:45 UTC",
+                "survey_schema": {
+                    "core_questions": [
+                        {
+                            "question_id": "q1",
+                            "question_name": "paid_job_question",
+                            "title": "Paid Job",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "question_description": "",
+                            "response_type": "radio",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "justification_text": "Placeholder text",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q2",
+                            "question_name": "job_title_question",
+                            "title": "Job Title",
+                            "question_text": "What is your exact job title for your main job or business?",
+                            "question_description": "",
+                            "response_type": "text",
+                            "response_name": "job-title",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q3",
+                            "question_name": "job_description_question",
+                            "title": "Job Description",
+                            "question_text": "Describe what you do in that job or business as a PLACEHOLDER_TEXT",
+                            "question_description": "<p>For example, I pack crates of goods in a warehouse for a supermarket chain</p>",
+                            "response_type": "text",
+                            "response_name": "job-description",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "button_text": "Save and continue",
+                            "placeholder_field": "job_title",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q4",
+                            "question_name": "organisation_activity_question",
+                            "title": "Organisation Activity",
+                            "question_text": "At your main job, describe the main activity of the business or organisation",
+                            "question_description": "<p>For example, elderly residential care, food and beverage manufacturing or primary education</p>",
+                            "response_type": "text",
+                            "response_name": "organisation-activity",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q5",
+                            "question_name": "organisation_type_question",
+                            "title": "Organisation Type",
+                            "question_text": "What kind of organisation was it?",
+                            "question_description": "",
+                            "response_type": "radio",
+                            "response_name": "organisation-type",
+                            "response_options": [
+                                {
+                                    "id": "limited-company",
+                                    "label": {
+                                        "text": "A public limited company"
+                                    },
+                                    "value": "A public limited company"
+                                },
+                                {
+                                    "id": "nationalised-industry",
+                                    "label": {
+                                        "text": "A nationalised industry or state corporation"
+                                    },
+                                    "value": "A nationalised industry or state corporation"
+                                },
+                                {
+                                    "id": "central-government",
+                                    "label": {
+                                        "text": "Central government or civil service"
+                                    },
+                                    "value": "Central government or civil service"
+                                },
+                                {
+                                    "id": "local-government",
+                                    "label": {
+                                        "text": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                    },
+                                    "value": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                },
+                                {
+                                    "id": "university-grant-funded",
+                                    "label": {
+                                        "text": "A university or other grant funded establishment (including opted-out schools)"
+                                    },
+                                    "value": "A university or other grant funded establishment (including opted-out schools)"
+                                },
+                                {
+                                    "id": "health-authority",
+                                    "label": {
+                                        "text": "A health authority or NHS Trust"
+                                    },
+                                    "value": "A health authority or NHS Trust"
+                                },
+                                {
+                                    "id": "charity-volunteer",
+                                    "label": {
+                                        "text": "A charity, voluntary organisation or trust"
+                                    },
+                                    "value": "A charity, voluntary organisation or trust"
+                                },
+                                {
+                                    "id": "armed-forces",
+                                    "label": {
+                                        "text": "The armed forces"
+                                    },
+                                    "value": "The armed forces"
+                                },
+                                {
+                                    "id": "other-organisation",
+                                    "label": {
+                                        "text": "Some other kind of organisation"
+                                    },
+                                    "value": "Some other kind of organisation"
+                                }
+                            ],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": []
+                        }
+                    ],
+                    "survey_assist": {
+                        "enabled": true,
+                        "question_assist_label": "<br><strong>(Asked by Survey Assist)</strong></br>",
+                        "consent": {
+                            "required": true,
+                            "question_id": "c1",
+                            "title": "Survey Assist Consent",
+                            "question_name": "survey_assist_consent",
+                            "question_text": "Can Survey Assist ask a maximum of two additional questions to better understand your main job and workplace?",
+                            "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
+                            "placeholder_reason": "your main job and workplace",
+                            "max_followup": 2
+                        },
+                        "interactions": [
+                            {
+                                "after_question_id": "q4",
+                                "type": "classification",
+                                "param": "sic",
+                                "follow_up": {
+                                    "allowed": true,
+                                    "presentation": {
+                                        "immediate": true,
+                                        "after_question_id": ""
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "survey_response": {
+                    "questions": [
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q2",
+                            "question_text": "What is your exact job title for your main job or business?",
+                            "response": "teacher",
+                            "response_name": "job-title",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q3",
+                            "question_text": "Describe what you do in that job or business as a teacher",
+                            "response": "i teach in a school",
+                            "response_name": "job-description",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q4",
+                            "question_text": "At your main job, describe the main activity of the business or organisation",
+                            "response": "education",
+                            "response_name": "organisation-activity",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "c1",
+                            "question_text": "Can Survey Assist ask a maximum of two additional questions to better understand your main job and workplace?",
+                            "response": "yes",
+                            "response_name": "survey-assist-consent",
+                            "response_options": [
+                                {
+                                    "id": "consent-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "consent-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio"
+                        },
+                        {
+                            "question_id": "f1.1",
+                            "question_text": "What age group does the teacher work with? Does the school offer any specialized programs in sports, cultural activities, or secondary education levels?<br><strong>(Asked by Survey Assist)</strong></br>",
+                            "response": "I teach 4-11 year olds only",
+                            "response_name": "resp-ai-assist-followup",
+                            "response_options": [],
+                            "response_type": "text"
+                        },
+                        {
+                            "question_id": "f1.2",
+                            "question_text": "Which of these best describes your organisation's activities?<br><strong>(Asked by Survey Assist)</strong></br>",
+                            "response": "primary education",
+                            "response_name": "resp-ai-assist-followup",
+                            "response_options": [
+                                {
+                                    "id": "primary-education-id",
+                                    "label": {
+                                        "text": "Primary education"
+                                    },
+                                    "value": "primary education"
+                                },
+                                {
+                                    "id": "general-secondary-education-id",
+                                    "label": {
+                                        "text": "General secondary education"
+                                    },
+                                    "value": "general secondary education"
+                                },
+                                {
+                                    "id": "sports-and-recreation-education-id",
+                                    "label": {
+                                        "text": "Sports and recreation education"
+                                    },
+                                    "value": "sports and recreation education"
+                                },
+                                {
+                                    "id": "cultural-education-id",
+                                    "label": {
+                                        "text": "Cultural education"
+                                    },
+                                    "value": "cultural education"
+                                },
+                                {
+                                    "id": "none-of-the-above-id",
+                                    "label": {
+                                        "text": "None of the above"
+                                    },
+                                    "value": "none of the above"
+                                }
+                            ],
+                            "response_type": "radio"
+                        },
+                        {
+                            "question_id": "q5",
+                            "question_text": "What kind of organisation was it?",
+                            "response": "Local government or council (including fire service and local authority controlled schools or colleges)",
+                            "response_name": "organisation-type",
+                            "response_options": [
+                                {
+                                    "id": "limited-company",
+                                    "label": {
+                                        "text": "A public limited company"
+                                    },
+                                    "value": "A public limited company"
+                                },
+                                {
+                                    "id": "nationalised-industry",
+                                    "label": {
+                                        "text": "A nationalised industry or state corporation"
+                                    },
+                                    "value": "A nationalised industry or state corporation"
+                                },
+                                {
+                                    "id": "central-government",
+                                    "label": {
+                                        "text": "Central government or civil service"
+                                    },
+                                    "value": "Central government or civil service"
+                                },
+                                {
+                                    "id": "local-government",
+                                    "label": {
+                                        "text": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                    },
+                                    "value": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                },
+                                {
+                                    "id": "university-grant-funded",
+                                    "label": {
+                                        "text": "A university or other grant funded establishment (including opted-out schools)"
+                                    },
+                                    "value": "A university or other grant funded establishment (including opted-out schools)"
+                                },
+                                {
+                                    "id": "health-authority",
+                                    "label": {
+                                        "text": "A health authority or NHS Trust"
+                                    },
+                                    "value": "A health authority or NHS Trust"
+                                },
+                                {
+                                    "id": "charity-volunteer",
+                                    "label": {
+                                        "text": "A charity, voluntary organisation or trust"
+                                    },
+                                    "value": "A charity, voluntary organisation or trust"
+                                },
+                                {
+                                    "id": "armed-forces",
+                                    "label": {
+                                        "text": "The armed forces"
+                                    },
+                                    "value": "The armed forces"
+                                },
+                                {
+                                    "id": "other-organisation",
+                                    "label": {
+                                        "text": "Some other kind of organisation"
+                                    },
+                                    "value": "Some other kind of organisation"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        }
+                    ]
+                }
+            },
+            "survey_assist": {
+                "interactions": [
+                    {
+                        "type": "classification",
+                        "response": {
+                            "categorisation": {
+                                "codeable": false,
+                                "codings": [
+                                    {
+                                        "code": "85310",
+                                        "code_description": "General secondary education",
+                                        "confidence": 0.7
+                                    },
+                                    {
+                                        "code": "85510",
+                                        "code_description": "Sports and recreation education",
+                                        "confidence": 0.5
+                                    },
+                                    {
+                                        "code": "85520",
+                                        "code_description": "Cultural education",
+                                        "confidence": 0.4
+                                    }
+                                ],
+                                "justification": "The respondent's company's main activity is 'education,' the job title is 'teacher,' and the job description mentions teaching in a school, all of which strongly suggest primary education (SIC code 85200). However, other possibilities like secondary education, sports, or cultural education cannot be ruled out without further information.",
+                                "sic_code": "85200",
+                                "sic_description": "Primary education"
+                            },
+                            "follow_up": {
+                                "questions": [
+                                    {
+                                        "follow_up_id": "f1.1",
+                                        "question_name": "ai_assist_followup",
+                                        "question_text": "What age group does the teacher work with? Does the school offer any specialized programs in sports, cultural activities, or secondary education levels?",
+                                        "response_type": "text",
+                                        "select_options": []
+                                    },
+                                    {
+                                        "follow_up_id": "f1.2",
+                                        "question_name": "ai_assist_followup",
+                                        "question_text": "Which of these best describes your organisation's activities?",
+                                        "response_type": "select",
+                                        "select_options": [
+                                            "Primary education",
+                                            "General secondary education",
+                                            "Sports and recreation education",
+                                            "Cultural education",
+                                            "None of the above"
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "interaction_sequence": 1
+                    },
+                    {
+                        "type": "classification",
+                        "response": {
+                            "classified": false,
+                            "followup": "Do you teach in a primary school or a secondary school?",
+                            "reasoning": "The respondent's company's main activity is education, and the respondent's job title is teacher. The respondent also states that they teach 4-11 year olds only. Based on this information, the most likely SIC code is 85200, which is the code for primary education. However, there is also a possibility that the respondent's company is involved in other education nec (SIC code 85590) or general secondary education (SIC code 85310). A follow-up question is needed to determine the exact SIC code.",
+                            "sic_candidates": [
+                                {
+                                    "likelihood": 0.9,
+                                    "sic_code": "85200",
+                                    "sic_descriptive": "Primary education"
+                                },
+                                {
+                                    "likelihood": 0.7,
+                                    "sic_code": "85590",
+                                    "sic_descriptive": "Other education nec"
+                                },
+                                {
+                                    "likelihood": 0.3,
+                                    "sic_code": "85310",
+                                    "sic_descriptive": "General secondary education"
+                                }
+                            ],
+                            "sic_code": "85200",
+                            "sic_description": "Primary education"
+                        },
+                        "interaction_sequence": 2
+                    }
+                ]
+            }
+        },
+        {
+            "response": {
+                "time_start": "2024-12-16 13:35:19 UTC",
+                "time_end": "2024-12-16 13:36:11 UTC",
+                "survey_assist_time_start": "2024-12-16 13:35:37 UTC",
+                "survey_assist_time_end": "2024-12-16 13:36:08 UTC",
+                "survey_schema": {
+                    "core_questions": [
+                        {
+                            "question_id": "q1",
+                            "question_name": "paid_job_question",
+                            "title": "Paid Job",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "question_description": "",
+                            "response_type": "radio",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "justification_text": "Placeholder text",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q2",
+                            "question_name": "job_title_question",
+                            "title": "Job Title",
+                            "question_text": "What is your exact job title for your main job or business?",
+                            "question_description": "",
+                            "response_type": "text",
+                            "response_name": "job-title",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q3",
+                            "question_name": "job_description_question",
+                            "title": "Job Description",
+                            "question_text": "Describe what you do in that job or business as a PLACEHOLDER_TEXT",
+                            "question_description": "<p>For example, I pack crates of goods in a warehouse for a supermarket chain</p>",
+                            "response_type": "text",
+                            "response_name": "job-description",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "button_text": "Save and continue",
+                            "placeholder_field": "job_title",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q4",
+                            "question_name": "organisation_activity_question",
+                            "title": "Organisation Activity",
+                            "question_text": "At your main job, describe the main activity of the business or organisation",
+                            "question_description": "<p>For example, elderly residential care, food and beverage manufacturing or primary education</p>",
+                            "response_type": "text",
+                            "response_name": "organisation-activity",
+                            "response_options": [],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q5",
+                            "question_name": "organisation_type_question",
+                            "title": "Organisation Type",
+                            "question_text": "What kind of organisation was it?",
+                            "question_description": "",
+                            "response_type": "radio",
+                            "response_name": "organisation-type",
+                            "response_options": [
+                                {
+                                    "id": "limited-company",
+                                    "label": {
+                                        "text": "A public limited company"
+                                    },
+                                    "value": "A public limited company"
+                                },
+                                {
+                                    "id": "nationalised-industry",
+                                    "label": {
+                                        "text": "A nationalised industry or state corporation"
+                                    },
+                                    "value": "A nationalised industry or state corporation"
+                                },
+                                {
+                                    "id": "central-government",
+                                    "label": {
+                                        "text": "Central government or civil service"
+                                    },
+                                    "value": "Central government or civil service"
+                                },
+                                {
+                                    "id": "local-government",
+                                    "label": {
+                                        "text": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                    },
+                                    "value": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                },
+                                {
+                                    "id": "university-grant-funded",
+                                    "label": {
+                                        "text": "A university or other grant funded establishment (including opted-out schools)"
+                                    },
+                                    "value": "A university or other grant funded establishment (including opted-out schools)"
+                                },
+                                {
+                                    "id": "health-authority",
+                                    "label": {
+                                        "text": "A health authority or NHS Trust"
+                                    },
+                                    "value": "A health authority or NHS Trust"
+                                },
+                                {
+                                    "id": "charity-volunteer",
+                                    "label": {
+                                        "text": "A charity, voluntary organisation or trust"
+                                    },
+                                    "value": "A charity, voluntary organisation or trust"
+                                },
+                                {
+                                    "id": "armed-forces",
+                                    "label": {
+                                        "text": "The armed forces"
+                                    },
+                                    "value": "The armed forces"
+                                },
+                                {
+                                    "id": "other-organisation",
+                                    "label": {
+                                        "text": "Some other kind of organisation"
+                                    },
+                                    "value": "Some other kind of organisation"
+                                }
+                            ],
+                            "justification_text": "<p>Placeholder text</p>",
+                            "placeholder_field": "",
+                            "button_text": "Save and continue",
+                            "used_for_classifications": []
+                        }
+                    ],
+                    "survey_assist": {
+                        "enabled": true,
+                        "question_assist_label": "<br><strong>(Asked by Survey Assist)</strong></br>",
+                        "consent": {
+                            "required": true,
+                            "question_id": "c1",
+                            "title": "Survey Assist Consent",
+                            "question_name": "survey_assist_consent",
+                            "question_text": "Can Survey Assist ask a maximum of two additional questions to better understand your main job and workplace?",
+                            "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
+                            "placeholder_reason": "your main job and workplace",
+                            "max_followup": 2
+                        },
+                        "interactions": [
+                            {
+                                "after_question_id": "q4",
+                                "type": "classification",
+                                "param": "sic",
+                                "follow_up": {
+                                    "allowed": true,
+                                    "presentation": {
+                                        "immediate": true,
+                                        "after_question_id": ""
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "survey_response": {
+                    "questions": [
+                        {
+                            "question_id": "q1",
+                            "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+                            "response": "yes",
+                            "response_name": "paid-job",
+                            "response_options": [
+                                {
+                                    "id": "paid-job-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "paid-job-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        },
+                        {
+                            "question_id": "q2",
+                            "question_text": "What is your exact job title for your main job or business?",
+                            "response": "farm hand",
+                            "response_name": "job-title",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q3",
+                            "question_text": "Describe what you do in that job or business as a farm hand",
+                            "response": "I feed and water crops",
+                            "response_name": "job-description",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "q4",
+                            "question_text": "At your main job, describe the main activity of the business or organisation",
+                            "response": "farming",
+                            "response_name": "organisation-activity",
+                            "response_options": [],
+                            "response_type": "text",
+                            "used_for_classifications": [
+                                "sic",
+                                "soc"
+                            ]
+                        },
+                        {
+                            "question_id": "c1",
+                            "question_text": "Can Survey Assist ask a maximum of two additional questions to better understand your main job and workplace?",
+                            "response": "yes",
+                            "response_name": "survey-assist-consent",
+                            "response_options": [
+                                {
+                                    "id": "consent-yes",
+                                    "label": {
+                                        "text": "Yes"
+                                    },
+                                    "value": "yes"
+                                },
+                                {
+                                    "id": "consent-no",
+                                    "label": {
+                                        "text": "No"
+                                    },
+                                    "value": "no"
+                                }
+                            ],
+                            "response_type": "radio"
+                        },
+                        {
+                            "question_id": "f1.1",
+                            "question_text": "Is the farm primarily focused on raising livestock or growing crops?<br><strong>(Asked by Survey Assist)</strong></br>",
+                            "response": "crops only",
+                            "response_name": "resp-ai-assist-followup",
+                            "response_options": [],
+                            "response_type": "text"
+                        },
+                        {
+                            "question_id": "f1.2",
+                            "question_text": "Which of these best describes your organisation's activities?<br><strong>(Asked by Survey Assist)</strong></br>",
+                            "response": "none of the above",
+                            "response_name": "resp-ai-assist-followup",
+                            "response_options": [
+                                {
+                                    "id": "mixed-farming-id",
+                                    "label": {
+                                        "text": "Mixed farming"
+                                    },
+                                    "value": "mixed farming"
+                                },
+                                {
+                                    "id": "raising-of-dairy-cattle-id",
+                                    "label": {
+                                        "text": "Raising of dairy cattle"
+                                    },
+                                    "value": "raising of dairy cattle"
+                                },
+                                {
+                                    "id": "raising-of-poultry-id",
+                                    "label": {
+                                        "text": "Raising of poultry"
+                                    },
+                                    "value": "raising of poultry"
+                                },
+                                {
+                                    "id": "raising-of-swinepigs-id",
+                                    "label": {
+                                        "text": "Raising of swinepigs"
+                                    },
+                                    "value": "raising of swinepigs"
+                                },
+                                {
+                                    "id": "none-of-the-above-id",
+                                    "label": {
+                                        "text": "None of the above"
+                                    },
+                                    "value": "none of the above"
+                                }
+                            ],
+                            "response_type": "radio"
+                        },
+                        {
+                            "question_id": "q5",
+                            "question_text": "What kind of organisation was it?",
+                            "response": "Some other kind of organisation",
+                            "response_name": "organisation-type",
+                            "response_options": [
+                                {
+                                    "id": "limited-company",
+                                    "label": {
+                                        "text": "A public limited company"
+                                    },
+                                    "value": "A public limited company"
+                                },
+                                {
+                                    "id": "nationalised-industry",
+                                    "label": {
+                                        "text": "A nationalised industry or state corporation"
+                                    },
+                                    "value": "A nationalised industry or state corporation"
+                                },
+                                {
+                                    "id": "central-government",
+                                    "label": {
+                                        "text": "Central government or civil service"
+                                    },
+                                    "value": "Central government or civil service"
+                                },
+                                {
+                                    "id": "local-government",
+                                    "label": {
+                                        "text": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                    },
+                                    "value": "Local government or council (including fire service and local authority controlled schools or colleges)"
+                                },
+                                {
+                                    "id": "university-grant-funded",
+                                    "label": {
+                                        "text": "A university or other grant funded establishment (including opted-out schools)"
+                                    },
+                                    "value": "A university or other grant funded establishment (including opted-out schools)"
+                                },
+                                {
+                                    "id": "health-authority",
+                                    "label": {
+                                        "text": "A health authority or NHS Trust"
+                                    },
+                                    "value": "A health authority or NHS Trust"
+                                },
+                                {
+                                    "id": "charity-volunteer",
+                                    "label": {
+                                        "text": "A charity, voluntary organisation or trust"
+                                    },
+                                    "value": "A charity, voluntary organisation or trust"
+                                },
+                                {
+                                    "id": "armed-forces",
+                                    "label": {
+                                        "text": "The armed forces"
+                                    },
+                                    "value": "The armed forces"
+                                },
+                                {
+                                    "id": "other-organisation",
+                                    "label": {
+                                        "text": "Some other kind of organisation"
+                                    },
+                                    "value": "Some other kind of organisation"
+                                }
+                            ],
+                            "response_type": "radio",
+                            "used_for_classifications": []
+                        }
+                    ]
+                }
+            },
+            "survey_assist": {
+                "interactions": [
+                    {
+                        "type": "classification",
+                        "response": {
+                            "categorisation": {
+                                "codeable": false,
+                                "codings": [
+                                    {
+                                        "code": "01410",
+                                        "code_description": "Raising of dairy cattle",
+                                        "confidence": 0.7
+                                    },
+                                    {
+                                        "code": "01470",
+                                        "code_description": "Raising of poultry",
+                                        "confidence": 0.6
+                                    },
+                                    {
+                                        "code": "01460",
+                                        "code_description": "Raising of swinepigs",
+                                        "confidence": 0.5
+                                    }
+                                ],
+                                "justification": "The respondent's job title and description suggest that the company is involved in both raising livestock and growing crops. The most likely SIC code is therefore 01500, Mixed farming.",
+                                "sic_code": "01500",
+                                "sic_description": "Mixed farming"
+                            },
+                            "follow_up": {
+                                "questions": [
+                                    {
+                                        "follow_up_id": "f1.1",
+                                        "question_name": "ai_assist_followup",
+                                        "question_text": "Is the farm primarily focused on raising livestock or growing crops?",
+                                        "response_type": "text",
+                                        "select_options": []
+                                    },
+                                    {
+                                        "follow_up_id": "f1.2",
+                                        "question_name": "ai_assist_followup",
+                                        "question_text": "Which of these best describes your organisation's activities?",
+                                        "response_type": "select",
+                                        "select_options": [
+                                            "Mixed farming",
+                                            "Raising of dairy cattle",
+                                            "Raising of poultry",
+                                            "Raising of swinepigs",
+                                            "None of the above"
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        "interaction_sequence": 1
+                    },
+                    {
+                        "type": "classification",
+                        "response": {
+                            "classified": false,
+                            "followup": "Is the farm involved in raising livestock, such as cattle, sheep, goats, pigs, or poultry?",
+                            "reasoning": "The respondent's description of their company's main activity as \"farming. crops only\" and their job title as \"farm hand\" suggests that the company is primarily engaged in crop production. However, the job description of \"feeding and watering crops\" could also be consistent with some livestock farming activities. Therefore, the most likely SIC code is 01500 (Mixed farming), with a likelihood of 0.9. The SIC code 01610 (Support activities for crop production) is also a possibility, with a likelihood of 0.8. To confirm the most accurate SIC code, it is necessary to ask the respondent if the farm raises any livestock.",
+                            "sic_candidates": [
+                                {
+                                    "likelihood": 0.9,
+                                    "sic_code": "01500",
+                                    "sic_descriptive": "Mixed farming"
+                                },
+                                {
+                                    "likelihood": 0.8,
+                                    "sic_code": "01610",
+                                    "sic_descriptive": "Support activities for crop production"
+                                },
+                                {
+                                    "likelihood": 0.2,
+                                    "sic_code": "01410",
+                                    "sic_descriptive": "Raising of dairy cattle"
+                                }
+                            ],
+                            "sic_code": "01500",
+                            "sic_description": "Mixed farming"
+                        },
+                        "interaction_sequence": 2
+                    }
+                ]
+            }
+        }
+    ]
+}

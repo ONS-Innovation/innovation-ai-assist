@@ -1,0 +1,171 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+{% from "components/label/_macro.njk" import onsLabel %}
+{% from "components/date-input/_macro.njk" import onsDateInput %}
+{% from "components/checkboxes/_macro.njk" import onsCheckboxes %}
+
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Testing Admin',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for("index"),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+{% block head %}
+<style>
+    .card {
+        display: inline-block;
+        width: 170px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        font-family: Arial, sans-serif;
+    }
+    .card .number {
+        font-size: 48px;
+        font-weight: bold;
+        color: #333;
+    }
+    .card .label {
+        font-size: 16px;
+        color: #666;
+    }
+</style>
+{% endblock %}
+{% block main %}
+<div class="ons-page__container ons-container">
+    <div class="ons-grid ons-js-test-container">
+        <div class="ons-grid__col ons-col-3@m">
+            <h2>Get Results</h2>
+            <form method="POST" action="{{ url_for('get_result') }}"> 
+            {{
+                onsDateInput({
+                    "id": "date-input-example",
+                    "legendOrLabel": "Select From Date",
+                    "description": "Start of testing 13 12 2024",
+                    "day": {
+                        "label": {
+                            "text": "Day"
+                        },
+                        "name": "day",
+                        "attributes": {
+                            "autocomplete": "bday-day"
+                        }
+                    },
+                    "month": {
+                        "label": {
+                            "text": "Month"
+                        },
+                        "name": "month",
+                        "attributes": {
+                            "autocomplete": "bday-month"
+                        }
+                    },
+                    "year": {
+                        "label": {
+                            "text": "Year"
+                        },
+                        "name": "year",
+                        "attributes": {
+                            "autocomplete": "bday-year"
+                        }
+                    }
+                })
+            }}
+            {{
+                onsCheckboxes({
+                    "id": "user-checkbox",
+                    "legend": "Select Users",
+                    "name": "users",
+                    "borderless": true,
+                    "checkboxes": user_checkboxes
+                })
+            }}
+            <br></br>
+            {{ onsButton({
+                "id": "submit-button",
+                "text": "Get Results",
+                "variants": 'loader',
+            }) }}
+            </form>
+        </div>
+        <div class="ons-grid__col ons-col-9@m">
+            <section id="general-totals">
+                {% if results %}
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.total_tests}}</div>
+                        <div class="label">Total Tests Completed</div>
+                    </div>
+                    <br></br>
+
+                        
+                </div>
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.sic_different}}</div>
+                        <div class="label">Final and Initial SIC Changed</div>
+                    </div>
+
+                </div>
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.avg_interaction_time}}</div>
+                        <div class="label">Avg Interaction (secs)</div>
+                    </div>
+                    <br></br>
+                </div>
+                {% endif %}
+            </section>
+            <section id="user-totals">
+                {% if results %}
+                    {{results.users_html | safe}}
+                {% endif %}
+            </section>
+  
+        </div>
+    </div>
+</div>
+<br></br>
+<div class="ons-grid ons-js-button-container">
+    <div class="ons-grid__col ons-col-8@m">        
+        {{
+            onsPanel({
+                "body": '<p>Detailed results will be stored and downloaded locally in CSV format</p>',
+            })
+        }}
+    </div>
+    <div class="ons-grid__col ons-col-4@m" style="padding-top: 10px;">    
+        {{
+        onsButton({
+            "text": 'Save as CSV',
+            "variants": ['download', 'small', 'secondary'],
+            "removeDownloadAttribute": true,
+            "url": url_for('save_as_csv')
+        })
+        }}
+    </div>
+{% endblock %}

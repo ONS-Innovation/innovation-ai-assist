@@ -1,11 +1,10 @@
 import copy
 import os
-import random
 from datetime import datetime, timezone
 from http import HTTPStatus
 
 import requests
-from flask import Flask, g, json, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, json, jsonify, redirect, render_template, request, session, url_for
 from flask_misaka import Misaka
 from google.cloud import storage
 
@@ -14,10 +13,24 @@ from ai_assist_builder.models.question import Question
 from ai_assist_builder.utils.classification_utils import (
     filter_classification_responses,
     get_classification,
+    get_last_survey_response,
     get_questions_by_classification,
     save_classification_response,
+    update_last_survey_response,
 )
 from ai_assist_builder.utils.jwt_utils import check_and_refresh_token, current_utc_time, generate_jwt
+from ai_assist_builder.utils.results_utils import (
+    calculate_average_excluding_max,
+    count_sic_changes,
+    count_test_ids_by_user,
+    filter_and_split_dataframe,
+    format_users_for_checkboxes,
+    generate_results_filename,
+    generate_test_results_df,
+    generate_user_cards,
+    process_users,
+    stream_file_from_store,
+)
 from ai_assist_builder.utils.template_utils import datetime_to_string, render_classification_results
 
 DEBUG = True
@@ -31,13 +44,12 @@ number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
+jwt_secret_path = os.getenv("JWT_SECRET")
+sa_email = os.getenv("SA_EMAIL")
+
+# TODO - Rationalise
 backend_api_url = os.getenv("BACKEND_API_URL", "http://127.0.0.1:5000")
-
-# TODO - store secret in secret manager
-jwt_secret_path = os.getenv("JWT_SECRET", "/app/jwt-secret.json")
-
-api_gateway = os.getenv("API_GATEWAY", "https://example-api-gateway-d90b4xu9.nw.gateway.dev")
-sa_email = os.getenv("SA_EMAIL", "backend-api-access@ai-assist-tlfs-poc.iam.gserviceaccount.com")
+api_gateway = os.getenv("API_GATEWAY")
 
 token_start_time = current_utc_time()
 # Generate JWT (lasts 1 hour - TODO rotate before expiry)
@@ -82,35 +94,6 @@ USERS_FILE = "users.json"
 storage_client = storage.Client()
 
 
-def validate_user(email, password):
-    """Validate the user against the credentials in the GCP bucket."""
-    try:
-        bucket = storage_client.bucket(BUCKET_NAME)
-        blob = bucket.blob(USERS_FILE)
-        data = json.loads(blob.download_as_text())
-
-        # Check if the user exists and the password matches
-        for user in data.get("users", []):
-            if user["email"] == email and user["password"] == password:
-                return True
-    except Exception as e:
-        print(f"Error validating user: {e}")
-    return False
-
-
-def print_session():
-    if DEBUG:
-        print("Session data:", session)
-        print("Response data:", session.get("response"))
-        print("Survey data:", session.get("survey"))
-
-
-def print_api_response(random_id, character_name):
-    if DEBUG:
-        print("Random ID:", random_id)
-        print("Character name:", character_name)
-
-
 # Check the JWT token status before processing the request
 @app.before_request
 def before_request():
@@ -123,6 +106,139 @@ def before_request():
                                                           sa_email)
 
 
+@app.route("/save_as_csv", methods=["GET", "POST"])
+def save_as_csv():
+    # Get the result_selection from the session data
+    result_selection = session.get("result_selection", {})
+    users = result_selection.get("users", [])
+    start_date = result_selection.get("start_date", "")
+
+    all_results = process_users(bucket_name=BUCKET_NAME,
+                                base_folder="TLFS_PoC",
+                                users=users,
+                                start_date=start_date)
+
+    if all_results:
+        # Generate a dataframe with results
+        df = generate_test_results_df(all_results, detailed=True)
+
+        results_path = generate_results_filename(user=session["user"],
+                                                 base_folder="TLFS_PoC")
+
+        # Save to store
+        filter_and_split_dataframe(df, BUCKET_NAME, results_path, drop_columns=True)
+
+        return stream_file_from_store(BUCKET_NAME, results_path)
+    else:
+        return redirect(url_for("error_page", error="No results found"))
+
+
+# TODO - refactor
+@app.route("/get_result", methods=["POST"])
+def get_result():
+    print("Get Result")
+    if request.method == "POST":
+
+        print(f"Request form: {request}")
+        day = request.form.get("day")
+        month = request.form.get("month")
+        year = request.form.get("year")
+
+        # if day, month or year is not populated, return an error
+        if not day or not month or not year:
+            return redirect(url_for("error_page", error="Date not selected"))
+
+        users = request.form.getlist("users")
+
+        if "users" not in request.form:
+            return redirect(url_for("error_page", error="No users selected"))
+
+        # Print the values with a string
+        print(f"Day: {day}, Month: {month}, Year: {year}, Users: {users}")
+
+        start_date = f"{day}-{month}-{year}"
+
+        # Add the start date and users to the session data
+        if "result_selection" not in session:
+            session["result_selection"] = {}
+
+        session["result_selection"]["start_date"] = start_date
+        session["result_selection"]["users"] = users
+        session.modified = True
+
+        all_results = process_users(bucket_name=BUCKET_NAME,
+                                    base_folder="TLFS_PoC",
+                                    users=users,
+                                    start_date=start_date)
+
+        if all_results:
+            # Generate a dataframe with results
+            df = generate_test_results_df(all_results, detailed=True)
+
+            # Build a results dictionary for presentation
+            results = {
+                "user_totals": [{}],
+            }
+            results["total_tests"] = len(df)
+
+            for user in users:
+                user_total = count_test_ids_by_user(user, df)
+                results["user_totals"].append({"user": user, "total": user_total})
+
+            sic_changes = count_sic_changes(df)
+            results["sic_same"] = sic_changes["same"]
+            results["sic_different"] = sic_changes["different"]
+            results["avg_interaction_time"] = round(calculate_average_excluding_max(df), 1)
+
+            print("Results:", results)
+
+        else:
+            # TODO - simplify
+            results = {
+                "user_totals": [{}],
+            }
+
+            results["total_tests"] = 0
+            for user in users:
+                user_total = 0
+                results["user_totals"].append({"user": user, "total": user_total})
+
+            results["sic_same"] = 0
+            results["sic_different"] = 0
+            results["avg_interaction_time"] = 0
+
+        results["users_html"] = generate_user_cards(results["user_totals"])
+
+        testing_users = get_users_by_roles("admin", "tester")
+        print(f"Testing users: {testing_users}")
+        user_checkboxes = format_users_for_checkboxes(testing_users)
+        return render_template("testing_admin.html",
+                               results=results,
+                               user_checkboxes=user_checkboxes)
+
+
+# Only allowed for admin and tester roles
+@app.route("/testing_admin", methods=["GET", "POST"])
+def testing_admin():
+    if request.method == "POST":
+        print(f"Request form: {request}")
+
+    # Get the role of the user
+    role = session.get("role")
+    print(f"Role: {role}")
+    if role not in ["admin", "tester"]:
+        return redirect(url_for("error_page", error="Not authorised for test data"))
+
+    testing_users = get_users_by_roles("admin", "tester")
+    print(f"Testing users: {testing_users}")
+
+    user_checkboxes = format_users_for_checkboxes(testing_users)
+
+    print(f"User checkboxes: {user_checkboxes}")
+    return render_template("testing_admin.html",
+                           user_checkboxes=user_checkboxes)
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -133,11 +249,14 @@ def login():
 
 @app.route("/check_login", methods=["POST"])
 def check_login():
-    email = request.form.get("email-username")
+    # Get email and convert to lowercase
+    email = request.form.get("email-username").lower()
     password = request.form.get("password")
 
     if validate_user(email, password):
-        session["user"] = email  # Save user in session
+        session["user"] = email
+        session["role"] = get_user_role(email)
+        print(f"User {email.split("@")[0]} logged in with role {session['role']}")
         return redirect("/")
     else:
         return render_template("login.html", error="Invalid credentials. Please try again.")
@@ -157,8 +276,6 @@ def index():
         session.pop("response")
 
     if "survey" in session:
-
-        print("Index - Initialise survey data")
         # TODO - is this needed?
         # Reinitialise the survey data
         session["survey"] = {
@@ -205,9 +322,6 @@ def survey():
     current_index = session["current_question_index"]
     current_question = questions[current_index]
 
-    # print("Current question index:", session["current_question_index"])
-    # print("Total number of questions:", len(questions))
-
     # if question_text contains PLACEHOLDER_TEXT, get the associated
     # placeholder_field associated with the question and replace the
     # PLACEHOLDER_TEXT string with the value of the specified field
@@ -222,28 +336,22 @@ def survey():
             current_question["question_text"] = current_question[
                 "question_text"
             ].replace("PLACEHOLDER_TEXT", session["response"][placeholder_field])
-            # print("Updated question text:", current_question["question_text"])
-        #else:
-            # print(
-            #    "No placeholder_field found for question:"
-            #    + current_question["question_text"]
-            #)
 
     return render_template("question_template.html", **current_question)
 
 
 # A generic route that handles survey interactions (e.g call to AI)
-# TODO - currently uses a mock endpoint for testing
+# TODO - split out to functions
 @app.route("/survey_assist", methods=["GET", "POST"])
 def survey_assist():
 
     llm = "gemini"  # gemini or chat-gpt
-    type = "sic"  # sic or soc
+    type = "sic"  # sic or soc or sic_soc
 
     # Find the question about job_title
     user_response = session.get("response")
 
-    api_url = backend_api_url+"/survey-assist/classify"
+    api_url = backend_api_url + "/survey-assist/classify"
     print("SENDING REQUEST API URL:", api_url)
 
     body = {
@@ -262,14 +370,9 @@ def survey_assist():
         response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
         response_data = response.json()
 
-        # print("Response data:", response_data)
-
         api_response = map_api_response_to_internal(response_data)
 
-        # print("AI Followup Questions:", api_response)
         followup_questions = api_response.get("follow_up", {}).get("questions", [])
-
-        # print("Internal Mapped Followup Questions:", followup_questions)
 
         # If at least one question is available, loop through the questions
         # and print the question text
@@ -287,9 +390,6 @@ def survey_assist():
             session["follow_up"].extend(followup_questions)
             session.modified = True
 
-            # for question in session["follow_up"]:
-                # print("SESSION - AI Followup Question Data:", question)
-
         if FOLLOW_UP_TYPE in ["text", "both"]:
             followup = session.get("follow_up", {})
             question_data = followup.pop(0)
@@ -298,9 +398,6 @@ def survey_assist():
             followup = session.get("follow_up", {})
             question_data = followup.pop(-1)
             question_text = question_data.get("question_text", "")
-
-        # for question in session["follow_up"]:
-            # print("SESSION AFTER - AI Followup Question Data:", question)
 
         # The response is mapped into a question object
         # which is then added to the dynamic survey data
@@ -420,7 +517,6 @@ def save_response():
 
     # Store the user response to the question AI asked
     question = request.form.get("question_name")
-    # print("Question:", question)
 
     if question.startswith("ai_assist"):
         question = "follow_up_question"
@@ -443,6 +539,7 @@ def save_response():
 
 
 # Make a final API request to get the results of the survey assist
+# TODO - refactor
 @app.route("/survey_assist_results", methods=["GET", "POST"])
 def survey_assist_results():
 
@@ -463,22 +560,14 @@ def survey_assist_results():
 
         survey_responses = session.get("survey")
 
-        # print("Survey_assist_results")
-        # print("Time start:", survey_responses["survey"]["time_start"])
-        # print("Time end:", survey_responses["survey"]["time_end"])
-        # print("Survey Assist Time Start:", survey_responses["survey"]["survey_assist_time_start"])
-        # print("Survey Assist Time End:", survey_responses["survey"]["survey_assist_time_end"])
-
         # Calculate the time taken to answer the survey
         time_taken = (
-            survey_responses["survey"]["time_end"]
-            - survey_responses["survey"]["time_start"]
+            survey_responses["survey"]["time_end"] - survey_responses["survey"]["time_start"]
         ).total_seconds()
 
         # Calculate the time taken to interact with Survey Assist
         survey_assist_time = (
-            survey_responses["survey"]["survey_assist_time_end"]
-            - survey_responses["survey"]["survey_assist_time_start"]
+            survey_responses["survey"]["survey_assist_time_end"] - survey_responses["survey"]["survey_assist_time_start"]
         ).total_seconds()
 
         # Find the SIC classification questions from the survey
@@ -493,7 +582,8 @@ def survey_assist_results():
         print("Updated responses:", updated_responses)
         # In updated_responses, find the org description
         # question
-        org_description_question = [question for question in updated_responses if question["question_text"].startswith("At your main job, describe the main activity of the business")]
+        ORG_QUESTION = "At your main job, describe the main activity of the business"
+        org_description_question = [question for question in updated_responses if question["question_text"].startswith(ORG_QUESTION)] # noqaE501
         if org_description_question:
             print("Organisation description:", org_description_question[0]["response"])
 
@@ -531,7 +621,10 @@ def survey_assist_results():
                                                     time_taken,
                                                     survey_assist_time)
 
-        sa_result = [{"interaction": "classification", "type": "sic", "title": "Initial SIC", "html_output": html_output}]
+        sa_result = [{"interaction": "classification",
+                      "type": "sic",
+                      "title": "Initial SIC",
+                      "html_output": html_output}]
 
         print("Updated organisation description:", org_description_question[0]["response"])
 
@@ -562,9 +655,13 @@ def survey_assist_results():
                                                     time_taken,
                                                     survey_assist_time)
 
-        sa_result.insert(0, {"interaction": "classification", "type": "final-sic", "title": "Final - SIC", "html_output": html_output})
+        sa_result.insert(0,
+                         {"interaction": "classification",
+                          "type": "final-sic",
+                          "title": "Final - SIC",
+                          "html_output": html_output})
 
-        return render_template("classification_template.html", 
+        return render_template("classification_template.html",
                                sa_result=sa_result)
     else:
         print("Session data not found")
@@ -572,6 +669,7 @@ def survey_assist_results():
 
 
 # Route to make an API request (used for testing)
+# TODO - split into functions
 @app.route("/save_results", methods=["GET", "POST"])
 def save_results():
 
@@ -594,11 +692,11 @@ def save_results():
     print(times)
     print("================")
 
-    user = session.get("user","unknown.user")
+    user = session.get("user", "unknown.user")
 
     if user != "unknown.user":
         # Extract everything before @
-        user = user.split("@")[0] 
+        user = user.split("@")[0]
 
     print("========BODY========")
     print("user_id:", user)
@@ -628,7 +726,7 @@ def save_results():
     print(sa_response_list)
     print("==========================")
 
-    api_url = backend_api_url+"/survey-assist/response"
+    api_url = backend_api_url + "/survey-assist/response"
     print("SENDING REQUEST API URL:", api_url)
 
     body = {
@@ -665,10 +763,41 @@ def save_results():
     # make an api request
     try:
         # Send a request to the Survey Assist API
-        response = requests.post(api_url, json=body, headers=headers ,timeout=API_TIMER_SEC)
+        response = requests.post(api_url, json=body, headers=headers, timeout=API_TIMER_SEC)
 
         if response.status_code != HTTPStatus.OK or not response.json():
             return redirect(url_for("error_page"))
+
+        # Else update the saved result with the test notes
+        # TODO - this is a temporary solution, needs integrating
+        # with the API
+        saved_response = get_last_survey_response(bucket_name=BUCKET_NAME,
+                                                  base_folder="TLFS_PoC",
+                                                  user=user)
+
+        print(f"Saved response: {saved_response}")
+        print("Saved response type:", type(saved_response))
+        print("Saved response Job Title:",
+              saved_response["response"]["survey_response"]["questions"][1]["response"])
+
+        notes = {
+            "notes": [{
+                "code": request.form.get("expected-code"),
+                "text": request.form.get("test-notes"),
+            }]
+        }
+
+        update_last_survey_response(bucket_name=BUCKET_NAME,
+                                    base_folder="TLFS_PoC",
+                                    user=user,
+                                    new_fields=notes)
+
+        updated_response = get_last_survey_response(bucket_name=BUCKET_NAME,
+                                                    base_folder="TLFS_PoC",
+                                                    user=user)
+
+        print(f"Updated response: {updated_response}")
+        print(f"Updates response notes: {updated_response['notes']}")
 
         return render_template("thank_you.html", survey=SURVEY_NAME)
 
@@ -677,7 +806,7 @@ def save_results():
         return redirect(url_for("error_page"))
 
 
-# The survey route takes summarises the data that has been
+# The survey route summarises the data that has been
 # entered by user, using the session data held in the survey
 # dictionary. The data is then displayed in a summary template
 @app.route("/summary")
@@ -723,8 +852,6 @@ def survey_assist_consent():
     # Get the survey data from the session
     user_survey = session.get("survey")
 
-    print("Survey time start in survey_assist_consent:", user_survey["survey"]["time_start"])
-
     # Mark the survey assist time start
     user_survey.get("survey")["survey_assist_time_start"] = datetime.now(timezone.utc)
     session.modified = True
@@ -765,20 +892,7 @@ def survey_assist_consent():
 @app.route("/classification")
 def classification():
     return render_template("classification_template.html")
-    # print_session()
-    # survey_data = session.get("survey")
-    # survey_questions = survey_data["survey"]["questions"]
 
-    # # Loop through the questions, when a question_name starts with ai_assist
-    # # uppdate the question_text to have a label added to say it was generated by
-    # # Survey Assist
-    # for question in survey_questions:
-    #     if question["response_name"].startswith("resp-ai-assist"):
-    #         question["question_text"] = (
-    #             question["question_text"] + ai_assist["question_assist_label"]
-    #         )
-
-    # return render_template("classification_template.html", questions=survey_questions)
 
 # Rendered at the end of the survey
 @app.route("/thank_you")
@@ -787,12 +901,105 @@ def thank_you():
     return render_template("thank_you.html", survey=SURVEY_NAME)
 
 
-# Route to handle errors
+# Simple route to handle errors
+# TODO - render error template
 @app.route("/error")
 def error_page():
+    # get error parameter from the URL
+    error = request.args.get("error")
+    if error:
+        return f"An error occurred: {error}"
     return "An error occurred. Please try again later."
 
 
+@app.errorhandler(404)
+@app.route("/page-not-found")
+def page_not_found(e=None):
+    return render_template("404.html"), 404 if e else 200
+
+
+# Method provides a dictionary to the jinja templates, allowing variables
+# inside the dictionary to be directly accessed within the template files
+@app.context_processor
+def set_variables():
+    navigation = {"navigation": {}}
+    return {"navigation": navigation}
+
+
+# --- Supporting functions below this point ---
+def get_users():
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(USERS_FILE)
+        data = json.loads(blob.download_as_text())
+        return data.get("users", [])
+    except Exception as e:
+        print(f"Error getting users: {e}")
+    return []
+
+
+def get_users_by_roles(*roles):
+    """Filters users by the specified roles.
+    Single role - get_users_by_roles("admin").
+    Multiple roles - get_users_by_roles("admin", "tester").
+
+    Args:
+        *roles: Variable length argument list of roles to filter by.
+
+    Returns:
+        list: A list of user dictionaries matching the specified roles.
+    """
+    users = get_users()
+
+    return [user["email"] for user in users if user["role"] in roles]
+
+
+def get_user_role(email):
+    """Validate the user against the credentials in the GCP bucket."""
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(USERS_FILE)
+        data = json.loads(blob.download_as_text())
+
+        # Check if the user exists and the password matches
+        for user in data.get("users", []):
+            if user["email"] == email:
+                return user["role"]
+    except Exception as e:
+        print(f"Error validating user: {e}")
+    return False
+
+
+def validate_user(email, password):
+    """Validate the user against the credentials in the GCP bucket."""
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(USERS_FILE)
+        data = json.loads(blob.download_as_text())
+
+        # Check if the user exists and the password matches
+        for user in data.get("users", []):
+            if user["email"] == email and user["password"] == password:
+                return True
+    except Exception as e:
+        print(f"Error validating user: {e}")
+    return False
+
+
+def print_session():
+    if DEBUG:
+        print("Session data:", session)
+        print("Response data:", session.get("response"))
+        print("Survey data:", session.get("survey"))
+
+
+def print_api_response(random_id, character_name):
+    if DEBUG:
+        print("Random ID:", random_id)
+        print("Character name:", character_name)
+
+
+# TODO - move to a separate file
 def consent_redirect():
     user_survey = session.get("survey")
 
@@ -956,7 +1163,6 @@ def update_session_and_redirect(key, value, route):
         print("Survey data:", session.get("survey"))
         session.modified = True
 
-
     # Get the current question and take a copy so
     # that the original question data is not modified
     current_question = questions[session["current_question_index"]]
@@ -989,31 +1195,12 @@ def update_session_and_redirect(key, value, route):
     if ai_assist.get("enabled", True):
         session.modified = True
         interactions = ai_assist.get("interactions")
-        if len(interactions) > 0:
-            # print("Interactions:", interactions[0])
-            # print("current_question:", current_question.get("question_id"))
-            # print("interaction id:", interactions[0].get("after_question_id"))
-
-            if current_question.get("question_id") == interactions[0].get(
-                "after_question_id"
-            ):
-                # print("AI Assist interaction detected - REDIRECTING to consent")
-                return redirect(url_for("survey_assist_consent"))
+        if len(interactions) > 0 and current_question.get("question_id") == interactions[0].get(
+            "after_question_id"
+        ):
+            # print("AI Assist interaction detected - REDIRECTING to consent")
+            return redirect(url_for("survey_assist_consent"))
 
     session["current_question_index"] += 1
     session.modified = True
     return redirect(url_for(route))
-
-
-@app.errorhandler(404)
-@app.route("/page-not-found")
-def page_not_found(e=None):
-    return render_template("404.html"), 404 if e else 200
-
-
-# Method provides a dictionary to the jinja templates, allowing variables
-# inside the dictionary to be directly accessed within the template files
-@app.context_processor
-def set_variables():
-    navigation = {"navigation": {}}
-    return {"navigation": navigation}
