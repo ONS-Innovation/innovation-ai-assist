@@ -16,6 +16,7 @@ from flask import (
 )
 from flask_misaka import Misaka
 from google.cloud import storage
+from markupsafe import escape
 
 from ai_assist_builder.models.api_map import map_api_response_to_internal
 from ai_assist_builder.models.question import Question
@@ -154,89 +155,87 @@ def save_as_csv():
 # TODO - refactor
 @app.route("/get_result", methods=["POST"])
 def get_result():
-    print("Get Result")
-    if request.method == "POST":
 
-        print(f"Request form: {request}")
-        day = request.form.get("day")
-        month = request.form.get("month")
-        year = request.form.get("year")
+    print(f"Request form: {request}")
+    day = request.form.get("day")
+    month = request.form.get("month")
+    year = request.form.get("year")
 
-        # if day, month or year is not populated, return an error
-        if not day or not month or not year:
-            return redirect(url_for("error_page", error="Date not selected"))
+    # if day, month or year is not populated, return an error
+    if not day or not month or not year:
+        return redirect(url_for("error_page", error="Date not selected"))
 
-        users = request.form.getlist("users")
+    users = request.form.getlist("users")
 
-        if "users" not in request.form:
-            return redirect(url_for("error_page", error="No users selected"))
+    if "users" not in request.form:
+        return redirect(url_for("error_page", error="No users selected"))
 
-        # Print the values with a string
-        print(f"Day: {day}, Month: {month}, Year: {year}, Users: {users}")
+    # Print the values with a string
+    print(f"Day: {day}, Month: {month}, Year: {year}, Users: {users}")
 
-        start_date = f"{day}-{month}-{year}"
+    start_date = f"{day}-{month}-{year}"
 
-        # Add the start date and users to the session data
-        if "result_selection" not in session:
-            session["result_selection"] = {}
+    # Add the start date and users to the session data
+    if "result_selection" not in session:
+        session["result_selection"] = {}
 
-        session["result_selection"]["start_date"] = start_date
-        session["result_selection"]["users"] = users
-        session.modified = True
+    session["result_selection"]["start_date"] = start_date
+    session["result_selection"]["users"] = users
+    session.modified = True
 
-        all_results = process_users(
-            bucket_name=BUCKET_NAME,
-            base_folder="TLFS_PoC",
-            users=users,
-            start_date=start_date,
+    all_results = process_users(
+        bucket_name=BUCKET_NAME,
+        base_folder="TLFS_PoC",
+        users=users,
+        start_date=start_date,
+    )
+
+    if all_results:
+        # Generate a dataframe with results
+        df = generate_test_results_df(all_results, detailed=True)
+
+        # Build a results dictionary for presentation
+        results = {
+            "user_totals": [{}],
+        }
+        results["total_tests"] = len(df)
+
+        for user in users:
+            user_total = count_test_ids_by_user(user, df)
+            results["user_totals"].append({"user": user, "total": user_total})
+
+        sic_changes = count_sic_changes(df)
+        results["sic_same"] = sic_changes["same"]
+        results["sic_different"] = sic_changes["different"]
+        results["avg_interaction_time"] = round(
+            calculate_average_excluding_max(df), 1
         )
 
-        if all_results:
-            # Generate a dataframe with results
-            df = generate_test_results_df(all_results, detailed=True)
+        print("Results:", results)
 
-            # Build a results dictionary for presentation
-            results = {
-                "user_totals": [{}],
-            }
-            results["total_tests"] = len(df)
+    else:
+        # TODO - simplify
+        results = {
+            "user_totals": [{}],
+        }
 
-            for user in users:
-                user_total = count_test_ids_by_user(user, df)
-                results["user_totals"].append({"user": user, "total": user_total})
+        results["total_tests"] = 0
+        for user in users:
+            user_total = 0
+            results["user_totals"].append({"user": user, "total": user_total})
 
-            sic_changes = count_sic_changes(df)
-            results["sic_same"] = sic_changes["same"]
-            results["sic_different"] = sic_changes["different"]
-            results["avg_interaction_time"] = round(
-                calculate_average_excluding_max(df), 1
-            )
+        results["sic_same"] = 0
+        results["sic_different"] = 0
+        results["avg_interaction_time"] = 0
 
-            print("Results:", results)
+    results["users_html"] = generate_user_cards(results["user_totals"])
 
-        else:
-            # TODO - simplify
-            results = {
-                "user_totals": [{}],
-            }
-
-            results["total_tests"] = 0
-            for user in users:
-                user_total = 0
-                results["user_totals"].append({"user": user, "total": user_total})
-
-            results["sic_same"] = 0
-            results["sic_different"] = 0
-            results["avg_interaction_time"] = 0
-
-        results["users_html"] = generate_user_cards(results["user_totals"])
-
-        testing_users = get_users_by_roles("admin", "tester")
-        print(f"Testing users: {testing_users}")
-        user_checkboxes = format_users_for_checkboxes(testing_users)
-        return render_template(
-            "testing_admin.html", results=results, user_checkboxes=user_checkboxes
-        )
+    testing_users = get_users_by_roles("admin", "tester")
+    print(f"Testing users: {testing_users}")
+    user_checkboxes = format_users_for_checkboxes(testing_users)
+    return render_template(
+        "testing_admin.html", results=results, user_checkboxes=user_checkboxes
+    )
 
 
 # Only allowed for admin and tester roles
@@ -260,11 +259,8 @@ def testing_admin():
     return render_template("testing_admin.html", user_checkboxes=user_checkboxes)
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET"])
 def login():
-    if request.method == "POST":
-        print(f"Request form: {request}")
-
     return render_template("login.html")
 
 
@@ -366,7 +362,7 @@ def survey():
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - split out to functions
 @app.route("/survey_assist", methods=["GET", "POST"])
-def survey_assist():
+def survey_assist():  # noqa: C901, PLR0911
 
     llm = "gemini"  # gemini or chat-gpt
     type = "sic"  # sic or soc or sic_soc
@@ -474,9 +470,21 @@ def survey_assist():
         session.modified = True
 
         return render_template("question_template.html", **mapped_question.to_dict())
-    except Exception as e:
-        # Handle errors and return an appropriate message
-        return jsonify({"error": str(e)}), 500
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+    except requests.exceptions.ConnectionError:
+        return jsonify({"error": "Failed to connect to the API. Please check your connection."}), 502
+    except requests.exceptions.HTTPError as http_err:
+        return jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}), 500
+    except ValueError:
+        # For JSON decoding errors
+        return jsonify({"error": "Failed to parse the response from the API."}), 500
+    except KeyError as key_err:
+        # This can be invalid JWT, check GCP logs
+        return jsonify({"error": f"Missing expected data: {str(key_err)}"}), 500  # noqa: RUF010
+    except Exception:
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
 
 
 # Route called after each question (or interaction) to save response to session data.
@@ -717,7 +725,7 @@ def survey_assist_results():
 # Route to make an API request (used for testing)
 # TODO - split into functions
 @app.route("/save_results", methods=["GET", "POST"])
-def save_results():
+def save_results():  # noqa: PLR0911, PLR0915
 
     # print the method used
     # print("SAVE SAVE SAVE - save_results "+request.method)
@@ -850,8 +858,30 @@ def save_results():
 
         return render_template("thank_you.html", survey=SURVEY_NAME)
 
+    except requests.exceptions.Timeout:
+        print("Error: Request timed out")
+        return redirect(url_for("error_page"))
+
+    except requests.exceptions.ConnectionError:
+        print("Error: Failed to connect to the API")
+        return redirect(url_for("error_page"))
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return redirect(url_for("error_page"))
+
+    except requests.exceptions.RequestException as req_err:
+        # Catch other requests-related errors
+        print(f"Request error: {req_err}")
+        return redirect(url_for("error_page"))
+
+    except KeyError as key_err:
+        print(f"Error: Missing expected data in response - {key_err}")
+        return redirect(url_for("error_page"))
+
     except Exception as e:
-        print("Error occurred:", e)
+        # General exception for unexpected errors
+        print(f"Unexpected error occurred: {e}")
         return redirect(url_for("error_page"))
 
 
@@ -961,7 +991,8 @@ def error_page():
     # get error parameter from the URL
     error = request.args.get("error")
     if error:
-        return f"An error occurred: {error}"
+        safe_error = escape(error)
+        return f"An error occurred: {safe_error}"
     return "An error occurred. Please try again later."
 
 

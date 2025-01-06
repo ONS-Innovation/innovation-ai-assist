@@ -127,6 +127,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
 
     # Access survey_responses
     survey_responses = data.get("survey_responses", [])
+
     if not survey_responses:
         print("No survey responses found.")
         return
@@ -134,7 +135,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
     results = []
 
     # Process each survey response
-    for entry in enumerate(survey_responses):
+    for entry in survey_responses:
         response = entry.get("response")
         time_start = response.get("time_start", "N/A")
 
@@ -149,7 +150,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
         initial_candidates = []
         final_candidates = []
         # Process each question
-        for question in enumerate(questions):
+        for question in questions:
             # Check if "sic" is in used_for_classifications
             used_for_classifications = question.get("used_for_classifications", [])
             if "sic" in used_for_classifications:
@@ -188,7 +189,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
         notes = entry.get("notes", "")
 
         # Process each interaction
-        for interaction in enumerate(interactions):
+        for interaction in interactions:
             type = interaction.get("type")
             if type == "classification":
                 sequence = interaction.get("interaction_sequence")

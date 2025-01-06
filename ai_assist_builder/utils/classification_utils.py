@@ -89,10 +89,27 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
         response_data = response.json()
 
         return response_data
+
+    except requests.exceptions.Timeout:
+        print("Error: Request timed out")
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+
+    except requests.exceptions.ConnectionError:
+        print("Error: Failed to connect to the API")
+        return jsonify({"error": "Failed to connect to the API. Please check your connection."}), 502
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return jsonify({"error": f"HTTP error: {http_err.response.status_code}"}), 500
+
+    except ValueError:
+        print("Error: Failed to decode JSON response")
+        return jsonify({"error": "Invalid response format received from the API."}), 500
+
     except Exception as e:
-        print("Error occurred getting classification:", e)
-        # Handle errors and return an appropriate message
-        return jsonify({"error": str(e)}), 500
+        # Handle any other unexpected errors
+        print("An unexpected error occurred:", str(e))
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
 
 
 def save_classification_response(session, response):

@@ -17,6 +17,7 @@ requests = "^2.32.3"
 google-cloud-storage = "^2.19.0"
 google-auth = "^2.36.0"
 pandas = "^2.2.3"
+markupsafe = "^3.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

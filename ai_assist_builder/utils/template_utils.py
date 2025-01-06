@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from jinja2 import Template
+from jinja2 import Environment, select_autoescape
 
 
 def datetime_to_string(data, fields, format="%Y-%m-%d %H:%M:%S %Z"):
@@ -74,7 +74,8 @@ def render_classification_results(
     """
 
     # Render the template with the response data and question responses
-    jinja_template = Template(template)
+    env = Environment(autoescape=select_autoescape(['html', 'xml']))
+    jinja_template = env.from_string(template)
     rendered_html = jinja_template.render(
         categorisation=response_data.get("categorisation", {}),
         question_responses=question_response_dict,
