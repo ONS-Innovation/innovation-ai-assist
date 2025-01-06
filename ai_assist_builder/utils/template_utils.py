@@ -74,7 +74,7 @@ def render_classification_results(
     """
 
     # Render the template with the response data and question responses
-    env = Environment(autoescape=select_autoescape(['html', 'xml']))
+    env = Environment(autoescape=select_autoescape(["html", "xml"]))
     jinja_template = env.from_string(template)
     rendered_html = jinja_template.render(
         categorisation=response_data.get("categorisation", {}),

@@ -207,9 +207,7 @@ def get_result():
         sic_changes = count_sic_changes(df)
         results["sic_same"] = sic_changes["same"]
         results["sic_different"] = sic_changes["different"]
-        results["avg_interaction_time"] = round(
-            calculate_average_excluding_max(df), 1
-        )
+        results["avg_interaction_time"] = round(calculate_average_excluding_max(df), 1)
 
         print("Results:", results)
 
@@ -474,17 +472,33 @@ def survey_assist():  # noqa: C901, PLR0911
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
     except requests.exceptions.ConnectionError:
-        return jsonify({"error": "Failed to connect to the API. Please check your connection."}), 502
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
     except requests.exceptions.HTTPError as http_err:
-        return jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}), 500
+        return (
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
+            500,
+        )
     except ValueError:
         # For JSON decoding errors
         return jsonify({"error": "Failed to parse the response from the API."}), 500
     except KeyError as key_err:
         # This can be invalid JWT, check GCP logs
-        return jsonify({"error": f"Missing expected data: {str(key_err)}"}), 500  # noqa: RUF010
+        return (
+            jsonify(
+                {"error": f"Missing expected data: {str(key_err)}"}  # noqa: RUF010
+            ),
+            500,
+        )
     except Exception:
-        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
+        return (
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
+            500,
+        )
 
 
 # Route called after each question (or interaction) to save response to session data.

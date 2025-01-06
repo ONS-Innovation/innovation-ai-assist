@@ -96,7 +96,12 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
 
     except requests.exceptions.ConnectionError:
         print("Error: Failed to connect to the API")
-        return jsonify({"error": "Failed to connect to the API. Please check your connection."}), 502
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -109,7 +114,10 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
     except Exception as e:
         # Handle any other unexpected errors
         print("An unexpected error occurred:", str(e))
-        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
+        return (
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
+            500,
+        )
 
 
 def save_classification_response(session, response):
