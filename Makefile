@@ -39,6 +39,9 @@ install: ## Install the dependencies
 install-dev: ## Install the dev dependencies
 	poetry install --no-root
 
+install-test: ## Install the test dependencies
+	poetry install --with test
+
 .PHONY: colima-start
 colima-start: ## Start Colima
 	colima start --cpu 2 --memory 4 --disk 100

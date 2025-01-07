@@ -140,3 +140,7 @@ test.py
 example_survey_data.txt
 
 *secret.json
+
+testing/automation.log
+testing/testData.csv
+testing/testedData.csv

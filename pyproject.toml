@@ -25,12 +25,19 @@ ruff = "^0.7.3"
 flake8 = "^7.1.1"
 isort = "^5.13.2"
 
+[tool.poetry.group.test.dependencies]
+selenium = "^4.15.0"
+pandas = "^2.2.3"
+undetected-chromedriver = "^3.5.5"
+setuptools = "^75.7.0"
+
 [tool.isort]
 profile = "black"
 
 [tool.ruff]
 line-length = 120
 indent-width = 4
+
 
 [tool.ruff.lint]
 select = [
