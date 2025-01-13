@@ -1,0 +1,70 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/radios/_macro.njk" import onsRadios %}
+{% from "components/input/_macro.njk" import onsInput %}
+{% from "components/question/_macro.njk" import onsQuestion %}
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Paid Job',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for('previous_question'),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+{% block main %}
+    <form method="POST" action="{{ url_for('save_response') }}">
+        <input type="hidden" name="question_name" value="{{ question_name }}">
+
+        {%
+            call onsQuestion({
+                "title": question_text,
+                "description": question_description,
+                "classes": "ons-u-mt-no",
+                "legendIsQuestionTitle": true,
+                "justification": {
+                    "title": "Why we ask this question",
+                    "content": justification_text
+                }
+            })
+        %}
+
+        {% if response_type == "radio" %}
+            {{ onsRadios({
+                "name": response_name,
+                "dontWrap": true,
+                "radios": response_options
+            })}}
+        {% elif response_type == "text" %}
+            {{ onsInput({
+                "id": response_name,
+                "name": response_name,
+                "type": "text",
+            })}}
+        {% endif %}
+        {% endcall %}
+        {{ onsButton({
+            "id": "save-values-button",
+            "text": button_text,
+            }) 
+        }}
+    </form>
+{% endblock %}

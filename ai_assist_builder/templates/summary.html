@@ -23,7 +23,7 @@
             "ariaLabel": 'Breadcrumbs',
             "itemsList": [
                 {
-                    "url": url_for("longer_hours_question"),
+                    "url": url_for("previous_question"),
                     "text": 'Previous'
                 }
             ]
@@ -32,8 +32,13 @@
 %}
 
 {% block main %}
-
+<ul>
+    {% for question in questions %}
+        <li>{{ question.response }}</li>
+    {% endfor %}
+</ul>
 {{
+    
     onsSummary({
         "summaries": [
             {

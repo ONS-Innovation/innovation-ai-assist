@@ -37,7 +37,7 @@
 
 {% block pageContent %}
 <main id="main-content">        
-    {% set hero_title = "AI assisted survey responses" %}
+    {% set hero_title = "TLFS Survey Assist" %}
     {% set hero_button = "Start survey" %}
 
     <div id="main-title">     
@@ -46,7 +46,7 @@
                 "title": hero_title,
                 "button": {
                     "id": 'find-methods-button', 
-                    "url": url_for("paid_job_question"),
+                    "url": url_for("survey"),
                     "text": hero_button
                 },
                 wide:true

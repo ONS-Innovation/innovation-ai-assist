@@ -1,0 +1,91 @@
+{
+    "id": "stevegibbard-17122024-134551-groundskeeper",
+    "type": "sic",
+    "questions": [
+        {
+            "text": "What is your exact job title for your main job or business?",
+            "response": "groundskeeper"
+        },
+        {
+            "text": "Describe what you do in that job or business as a groundskeeper",
+            "response": "I look after fotball pitches"
+        },
+        {
+            "text": "At your main job, describe the main activity of the business or organisation",
+            "response": "Football club"
+        }
+    ],
+    "interactions": [
+        {
+            "text": "Is the football club a professional or amateur club?<br><strong>(Asked by Survey Assist)</strong></br>",
+            "response": "professional"
+        },
+        {
+            "text": "Which of these best describes your organisation's activities? activities of sport clubs, operation of sports facilities, other sports activities (not including activities of racehorse owners) nec, activities of other membership organisations nec, none of the above",
+            "response": "none of the above"
+        }
+    ],
+    "classification": {
+        "initial": {
+            "ml_code": "93120",
+            "ml_description": "Activities of sport clubs",
+            "ml_confidence": 0.9,
+            "candidates": [
+                {
+                    "confidence": 0.9,
+                    "code": "93120",
+                    "description": "Activities of sport clubs"
+                },
+                {
+                    "confidence": 0.8,
+                    "code": "93110",
+                    "description": "Operation of sports facilities"
+                },
+                {
+                    "confidence": 0.7,
+                    "code": "93199",
+                    "description": "Other sports activities (not including activities of racehorse owners) nec"
+                },
+                {
+                    "confidence": 0.6,
+                    "code": "94990",
+                    "description": "Activities of other membership organisations nec"
+                }
+            ],
+            "justification": "The most likely SIC code is 93120, Activities of sport clubs, as the respondent's company is a football club and the job title and description are consistent with this activity. However, there are other possible SIC codes that could be applicable, such as 93110, Operation of sports facilities, or 93199, Other sports activities (not including activities of racehorse owners) nec. The specific SIC code will depend on whether the football club is a professional or amateur club."
+        },
+        "final": {
+            "ml_code": "93120",
+            "ml_description": "Activities of sport clubs",
+            "ml_confidence": 0.9,
+            "candidates": [
+                {
+                    "confidence": 0.9,
+                    "code": "93120",
+                    "description": "Activities of sport clubs"
+                },
+                {
+                    "confidence": 0.7,
+                    "code": "93199",
+                    "description": "Other sports activities (not including activities of racehorse owners) nec"
+                },
+                {
+                    "confidence": 0.5,
+                    "code": "94120",
+                    "description": "Activities of professional membership organisations"
+                }
+            ],
+            "justification": "The respondent's job title and description indicate that they work for a football club. The company's main activity is not listed as activities of sport clubs, operation of sports facilities, or other sports activities (not including activities of racehorse owners) nec. However, the respondent's job title and description suggest that the company is involved in sports activities. Therefore, the most likely SIC code is 93120, Activities of sport clubs. The other possible SIC codes are 93199, Other sports activities (not including activities of racehorse owners) nec, and 94120, Activities of professional membership organisations. The likelihood of these codes is lower because the company's main activity is not listed as one of these activities."
+        }
+    },
+    "times": {
+        "total_time_secs": 83,
+        "interaction_time_secs": 35
+    },
+    "notes": [
+        {
+            "text": "I disagree with survey assist",
+            "expected_code": "94120"
+        }
+    ]
+}

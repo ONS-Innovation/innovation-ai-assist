@@ -1,0 +1,115 @@
+{
+    "questions": [
+      {
+        "question_id": "q1",
+        "question_name": "paid_job_question",
+        "title": "Paid Job",
+        "question_text": "Did you have a paid job, either as an employee or self-employed, in the week 04 November to 11 November 2024?",
+        "question_description": "",
+        "response_type": "radio",
+        "response_name": "paid-job",
+        "response_options": [
+          { "id": "paid-job-yes", "label": {"text": "Yes"}, "value": "yes" },
+          { "id": "paid-job-no", "label": {"text": "No"}, "value": "no" }
+        ],
+        "justification_text": "Placeholder text",
+        "placeholder_field": "",
+        "button_text": "Save and continue",
+        "used_for_classifications": []
+      },
+      {
+        "question_id": "q2",
+        "question_name": "job_title_question",
+        "title": "Job Title",
+        "question_text": "What is your exact job title for your main job or business?",
+        "question_description": "",
+        "response_type": "text",
+        "response_name": "job-title",
+        "response_options": [],
+        "justification_text": "<p>Placeholder text</p>",
+        "placeholder_field": "",
+        "button_text": "Save and continue",
+        "used_for_classifications": ["sic","soc"]
+      },
+      {
+        "question_id": "q3",
+        "question_name": "job_description_question",
+        "title": "Job Description",
+        "question_text": "Describe what you do in that job or business as a PLACEHOLDER_TEXT",
+        "question_description": "<p>For example, I pack crates of goods in a warehouse for a supermarket chain</p>",
+        "response_type": "text",
+        "response_name": "job-description",
+        "response_options": [],
+        "justification_text": "<p>Placeholder text</p>",
+        "button_text": "Save and continue",
+        "placeholder_field": "job_title",
+        "used_for_classifications": ["sic","soc"]
+      },
+      {
+        "question_id": "q4",
+        "question_name": "organisation_activity_question",
+        "title": "Organisation Activity",
+        "question_text": "At your main job, describe the main activity of the business or organisation",
+        "question_description": "<p>For example, elderly residential care, food and beverage manufacturing or primary education</p>",
+        "response_type": "text",
+        "response_name": "organisation-activity",
+        "response_options": [],
+        "justification_text": "<p>Placeholder text</p>",
+        "placeholder_field": "",
+        "button_text": "Save and continue",
+        "used_for_classifications": ["sic","soc"]
+      },
+      {
+        "question_id": "q5",
+        "question_name": "organisation_type_question",
+        "title": "Organisation Type",
+        "question_text": "What kind of organisation was it?",
+        "question_description": "",
+        "response_type": "radio",
+        "response_name": "organisation-type",
+        "response_options": [
+          { "id": "limited-company", "label": {"text": "A public limited company"}, "value": "A public limited company" },
+          { "id": "nationalised-industry", "label": {"text": "A nationalised industry or state corporation"}, "value": "A nationalised industry or state corporation" },
+          { "id": "central-government", "label": {"text": "Central government or civil service"}, "value": "Central government or civil service" },
+          { "id": "local-government", "label": {"text": "Local government or council (including fire service and local authority controlled schools or colleges)"}, "value": "Local government or council (including fire service and local authority controlled schools or colleges)" },
+          { "id": "university-grant-funded", "label": {"text": "A university or other grant funded establishment (including opted-out schools)"}, "value": "A university or other grant funded establishment (including opted-out schools)" },
+          { "id": "health-authority", "label": {"text": "A health authority or NHS Trust"}, "value": "A health authority or NHS Trust" },
+          { "id": "charity-volunteer", "label": {"text": "A charity, voluntary organisation or trust"}, "value": "A charity, voluntary organisation or trust" },
+          { "id": "armed-forces", "label": {"text": "The armed forces"}, "value": "The armed forces" },
+          { "id": "other-organisation", "label": {"text": "Some other kind of organisation"}, "value": "Some other kind of organisation" }
+        ],
+        "justification_text": "<p>Placeholder text</p>",
+        "placeholder_field": "",
+        "button_text": "Save and continue",
+        "used_for_classifications": []
+      }    
+    ],
+    "ai_assist": {
+      "enabled": true,
+      "question_assist_label": "<br><strong>(Asked by Survey Assist)</strong></br>",
+      "consent": {
+        "required": true,
+        "question_id": "c1",
+        "title": "Survey Assist Consent",
+        "question_name":"survey_assist_consent",
+        "question_text": "Can Survey Assist ask PLACEHOLDER_FOLLOWUP to better understand PLACEHOLDER_REASON?",
+        "justification_text": "<p>Survey Assist generates intelligent follow up questions based on the answers you have given so far to help ONS to better understand your main job or the organisation you work for. ONS asks for your consent as Survey Assist uses artifical intelligence to pose questions that enable us to better understand your survey responses.</p>",
+        "placeholder_reason": "your main job and workplace",
+        "max_followup": 2
+      },
+      "interactions": [
+        {
+          "after_question_id": "q4",
+          "type": "classification",
+          "param": "sic",
+          "follow_up": {
+            "allowed": true,
+            "presentation": {
+               "immediate": true,
+               "after_question_id": ""
+            }
+          }
+        }
+      ]
+    }
+  }

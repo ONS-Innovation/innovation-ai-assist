@@ -1,0 +1,74 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/summary/_macro.njk" import onsSummary %}
+
+{% set pageConfig = {
+    "meta": {
+        "canonicalUrl": "/",
+        "description": "/",
+    },
+    "header": {
+        "title": 'You Responded',
+        "orgLogoHref": 'https://www.ons.gov.uk',
+        "titleLogoHref": "/",
+        "mastheadLogo": {
+          "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+        },
+        "titleLogo": "/",
+        "navigation": navigation.navigation,
+    },
+    "breadcrumbs": {
+        "ariaLabel": 'Breadcrumbs',
+        "itemsList": [
+            {
+                "url": url_for("previous_question"),
+                "text": 'Previous'
+            }
+        ]
+    }
+} %}
+
+{% block main %}
+
+{% set rows = [] %}
+{% for question_data in questions %}
+    {% set row = {
+        "rowTitle": question_data['question_text'],
+        "rowItems": [
+            {
+                "valueList": [
+                    {
+                        "text": question_data['response']
+                    }
+                ]
+            }
+        ]
+    } %}
+    {% do rows.append(row) %}
+{% endfor %}
+
+{{
+
+    onsSummary({
+        "summaries": [
+            {
+                "groups": [
+                    {
+                        "groupTitle": "Summary",
+                        "rows": rows
+                    }
+                ]
+            }
+        ]
+    })
+
+}}
+
+{{ onsButton({
+    "id": "submit-button",
+    "text": "Submit",
+    "variants": 'loader',
+    "url": url_for('survey_assist_results'),
+}) }}
+
+{% endblock %}

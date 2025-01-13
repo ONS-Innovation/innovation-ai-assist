@@ -132,3 +132,11 @@ ai_assist_builder/templates/layout
 .DS_Store
 content/.DS_Store
 /.idea
+
+# exclude user list
+ai_assist_builder/data/users.json
+
+test.py
+example_survey_data.txt
+
+*secret.json

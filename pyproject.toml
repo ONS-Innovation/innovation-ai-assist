@@ -14,12 +14,19 @@ flask-markdown = "^0.3"
 flask = "^3.0.3"
 flask-misaka = "^1.0.1"
 requests = "^2.32.3"
+google-cloud-storage = "^2.19.0"
+google-auth = "^2.36.0"
+pandas = "^2.2.3"
+markupsafe = "^3.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
 ruff = "^0.7.3"
 flake8 = "^7.1.1"
 isort = "^5.13.2"
+
+[tool.isort]
+profile = "black"
 
 [tool.ruff]
 line-length = 120
