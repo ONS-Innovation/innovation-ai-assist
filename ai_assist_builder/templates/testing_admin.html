@@ -65,7 +65,7 @@
                 onsDateInput({
                     "id": "date-input-example",
                     "legendOrLabel": "Select From Date",
-                    "description": "Start of testing 13 12 2024",
+                    "description": "PoC v1 - 13 12 2024 <br> PoC v2 - 23 01 2025",
                     "day": {
                         "label": {
                             "text": "Day"
@@ -120,9 +120,7 @@
                         <div class="number">{{results.total_tests}}</div>
                         <div class="label">Total Tests Completed</div>
                     </div>
-                    <br></br>
-
-                        
+                    <br></br>                        
                 </div>
                 <div class="ons-grid__col ons-col-3@m">
                     <div class="card">
@@ -140,6 +138,32 @@
                 </div>
                 {% endif %}
             </section>
+            <section id="lookup-totals">
+                {% if results %}
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.sic_lookup_total_tests}}</div>
+                        <div class="label">SIC Lookups Completed</div>
+                    </div>
+                    <br></br>                        
+                </div>
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.sic_lookup_found}}</div>
+                        <div class="label">SIC Found (Lookup)</div>
+                    </div>
+
+                </div>
+                <div class="ons-grid__col ons-col-3@m">
+                    <div class="card">
+                        <div class="number">{{results.sic_lookup_not_found}}</div>
+                        <div class="label">SIC NOT Found (Lookup)</div>
+                    </div>
+                    <br></br>
+                </div>
+                {% endif %}
+            </section>
+
             <section id="user-totals">
                 {% if results %}
                     {{results.users_html | safe}}

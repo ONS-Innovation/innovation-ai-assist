@@ -41,7 +41,8 @@ def calculate_times(data):
     if assist_start and assist_end:  # noqa: SIM108
         interaction_time_secs = int((assist_end - assist_start).total_seconds())
     else:
-        interaction_time_secs = -1
+        # SIC Lookup was successful and survey assist was not used for initial and final classification
+        interaction_time_secs = 0
 
     return {
         "total_time_secs": total_time_secs,
@@ -187,6 +188,14 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
         survey_assist = entry.get("survey_assist", {})
         interactions = survey_assist.get("interactions", [])
         notes = entry.get("notes", "")
+        initial_classification = None
+        final_classification = None
+
+        sic_lookup_data = {
+            "sic_found": None,
+            "sic_lookup_string": "N/A",
+            "sic_lookup_response": {}
+        }
 
         # Process each interaction
         for interaction in interactions:
@@ -268,6 +277,15 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
                         candidates=final_candidates,
                         justification=justification,
                     )
+            elif type == "sic":  # TODO - type of sic isn't really appropriate, want lookup-sic
+                sic_lookup_resp = interaction.get("response", {})
+                sic_found = interaction.get("found", False)
+                sic_lookup_string = interaction.get("lookup_string", "N/A")
+
+                # Add the lookup data to the result
+                sic_lookup_data = {"sic_found": sic_found,
+                                   "sic_lookup_string": sic_lookup_string,
+                                   "sic_lookup_response": sic_lookup_resp}
 
         # Calculate times
         times = calculate_times(response)
@@ -285,6 +303,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
                 "initial": initial_classification,
                 "final": final_classification,
             },
+            sic_lookup=sic_lookup_data,
             times=Times(
                 total_time_secs=times["total_time_secs"],
                 interaction_time_secs=times["interaction_time_secs"],
@@ -559,6 +578,9 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         "Initial_Most_Likely_SIC",
         "Final_SIC_Confidence",
         "Initial_SIC_Confidence",
+        "SIC_Lookup_String",
+        "SIC_Lookup_Status",
+        "SIC_Lookup_Code",
         "Test_Notes",
     ]
 
@@ -569,12 +591,19 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
     max_interactions = 0
 
     for result in results:
-        max_final_candidates = max(
-            max_final_candidates, len(result.classification["final"].candidates)
-        )
-        max_initial_candidates = max(
-            max_initial_candidates, len(result.classification["initial"].candidates)
-        )
+        # When initial and final is None, this indicates sic_lookup
+        # was successful and survey assist was not used for initial
+        # and final classification
+        if result.classification["final"] is not None:
+            max_final_candidates = max(
+                max_final_candidates, len(result.classification["final"].candidates)
+            )
+
+        if result.classification["initial"] is not None:
+            max_initial_candidates = max(
+                max_initial_candidates, len(result.classification["initial"].candidates)
+            )
+
         max_questions = max(max_questions, len(result.questions))
         max_interactions = max(max_interactions, len(result.interactions))
 
@@ -590,6 +619,9 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         "Interaction_Time_Secs",
         "Final_Justification",
         "Initial_Justification",
+        "SIC_Lookup_String",
+        "SIC_Lookup_Status",
+        "SIC_Lookup_Code",
         "Expected_SIC",
         "Result",
         "Test_Notes",
@@ -621,17 +653,41 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         if expected_sic == "":
             expected_sic = "N/A"
 
-        final_sic = result.classification["final"].ml_code
-        initial_sic = result.classification["initial"].ml_code
-        final_justification = result.classification["final"].justification
-        initial_justification = result.classification["initial"].justification
-        test_notes = result.notes[0].text if result.notes else "N/A"
-        times = result.times
-        result_status = (
-            "N/A"
-            if expected_sic == "N/A"
-            else ("Pass" if expected_sic == final_sic else "Fail")
-        )
+        if result.classification["final"] is not None and result.classification["initial"] is not None:
+            final_sic = result.classification["final"].ml_code
+            initial_sic = result.classification["initial"].ml_code
+            final_justification = result.classification["final"].justification
+            initial_justification = result.classification["initial"].justification
+            final_confidence = result.classification["final"].ml_confidence
+            initial_confidence = result.classification["initial"].ml_confidence
+            test_notes = result.notes[0].text if result.notes else "N/A"
+            times = result.times
+            result_status = (
+                "N/A"
+                if expected_sic == "N/A"
+                else ("Pass" if expected_sic == final_sic else "Fail")
+            )
+        else:
+            # If initial and final are None, this indicates sic_lookup
+            # TODO - this is not ideal, need to handle this better
+            final_sic = "N/A"
+            initial_sic = "N/A"
+            final_justification = "N/A"
+            initial_justification = "N/A"
+            test_notes = result.notes[0].text if result.notes else "N/A"
+            final_confidence = 0.0
+            initial_confidence = 0.0
+            times = result.times
+            result_status = (
+                "N/A"
+                if expected_sic == "N/A"
+                else ("Pass" if expected_sic == final_sic else "Fail")
+            )
+
+        if result.sic_lookup:
+            sic_lookup_status = result.sic_lookup["sic_found"]
+            sic_lookup_string = result.sic_lookup["sic_lookup_string"]
+            sic_lookup_code = result.sic_lookup["sic_lookup_response"].get("sic_code", "N/A")
 
         if result_status == "Pass":
             pass_count += 1
@@ -649,23 +705,34 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
             "Initial_Most_Likely_SIC": initial_sic,
             "Result": result_status,
             "Test_Notes": test_notes,
-            "Final_SIC_Confidence": result.classification["final"].ml_confidence,
-            "Initial_SIC_Confidence": result.classification["initial"].ml_confidence,
+            "Final_SIC_Confidence": final_confidence,
+            "Initial_SIC_Confidence": initial_confidence,
+            "SIC_Lookup_String": sic_lookup_string,
+            "SIC_Lookup_Status": sic_lookup_status,
+            "SIC_Lookup_Code": sic_lookup_code,
             "Total_Time_Secs": times.total_time_secs,
             "Interaction_Time_Secs": times.interaction_time_secs,
             "Final_Justification": final_justification,
             "Initial_Justification": initial_justification,
         }
 
-        # Add final SIC candidates
-        for x, candidate in enumerate(result.classification["final"].candidates, 1):
-            row[f"Final_Alternative_SIC_{x}"] = candidate.code
-            row[f"Final_Alternative_SIC_Confidence_{x}"] = candidate.confidence
+        if result.classification["final"] is not None:
+            # Add final SIC candidates
+            for x, candidate in enumerate(result.classification["final"].candidates, 1):
+                row[f"Final_Alternative_SIC_{x}"] = candidate.code
+                row[f"Final_Alternative_SIC_Confidence_{x}"] = candidate.confidence
+        else:
+            row["Final_Alternative_SIC_1"] = "N/A"
+            row["Final_Alternative_SIC_Confidence_1"] = 0.0
 
         # Add initial SIC candidates
-        for x, candidate in enumerate(result.classification["initial"].candidates, 1):
-            row[f"Initial_Alternative_SIC_{x}"] = candidate.code
-            row[f"Initial_Alternative_SIC_Confidence_{x}"] = candidate.confidence
+        if result.classification["initial"] is not None:
+            for x, candidate in enumerate(result.classification["initial"].candidates, 1):
+                row[f"Initial_Alternative_SIC_{x}"] = candidate.code
+                row[f"Initial_Alternative_SIC_Confidence_{x}"] = candidate.confidence
+        else:
+            row["Initial_Alternative_SIC_1"] = "N/A"
+            row["Initial_Alternative_SIC_Confidence_1"] = 0.0
 
         # Add the question and response data
         for x, question in enumerate(result.questions, 1):
@@ -790,8 +857,8 @@ def calculate_average_excluding_max(df):
     # Exclude NaN values
     filtered_times = df["Interaction_Time_Secs"].dropna()
 
-    # If there is only one value or less, we can't exclude the max, so return the mean of the available values
-    if len(filtered_times) <= 1:
+    # If there are only two values, we can't exclude the max, so return the mean of the available values
+    if len(filtered_times) <= 2:
         return filtered_times.mean()
 
     # Exclude the maximum value only if there are more than one row

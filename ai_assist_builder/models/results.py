@@ -47,6 +47,8 @@ class Result:
     classification: dict = field(
         default_factory=lambda: {"initial": Classification(), "final": Classification()}
     )
+    sic_lookup: dict = field(default_factory=dict)
+
     times: Times = field(default_factory=Times)
     notes: List[Note] = field(default_factory=list)
 

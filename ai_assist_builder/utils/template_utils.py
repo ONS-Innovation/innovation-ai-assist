@@ -84,3 +84,119 @@ def render_classification_results(
     )
 
     return rendered_html
+
+
+def render_sic_lookup_unsuccessful(
+    org_description, sic_code_count, sic_code_division_count, potential_sic_codes, potential_sic_divisions
+):
+
+    template = """
+    <h2>SIC Lookup Failed</h2>
+    <h3>Organisation Description</h3>
+    <p><strong>{{ org_description }}</strong></p>
+    <p>No SIC code found for the organisation description provided.</p>
+
+    <h3>{{sic_code_count}} - Possible SIC Codes Found</h3>
+
+    {% if potential_sic_codes %}
+    <p>A sample of at most 5 potential SIC codes</p>
+    {% for item in potential_sic_codes %}
+    <p>{{ item.code }} - {{item.description}}</p>
+    {% endfor %}
+    {% else %}
+    <p>No potential SIC codes found</p>
+    {% endif %}
+    <h3>{{sic_code_division_count}} - Possible SIC Divisions Found</h3>
+
+    {% if potential_sic_divisions %}
+    <p>A sample of at most 5 potential SIC divisions</p>
+    {% for division in potential_sic_divisions %}
+    <p>{{ division.code }} - {{division.title}}</p>
+    {% endfor %}
+    {% else %}
+    <p>No potential SIC divisions found</p>
+    {% endif %}
+    """
+
+    # Render the template with the response data and question responses
+    env = Environment(autoescape=select_autoescape(["html", "xml"]))
+    jinja_template = env.from_string(template)
+    rendered_html = jinja_template.render(
+        org_description=org_description,
+        sic_code_count=sic_code_count,
+        sic_code_division_count=sic_code_division_count,
+        potential_sic_codes=potential_sic_codes,
+        potential_sic_divisions=potential_sic_divisions
+    )
+
+    return rendered_html
+
+
+# Function to render the classification results from Survey Assist
+# This function will render the classification results in an HTML format
+def render_sic_lookup_results(
+    org_description, sic_code, sic_code_meta, sic_code_division_meta
+):
+
+    template = """
+    <h2>SIC Found</h2>
+    <h3>Organisation Description</h3>
+    <p><strong>{{ org_description }}</strong></p>
+
+    <h3>{{ sic_code }}</strong> - {{ sic_code_meta.title }}</h3>
+
+    {% if sic_code_meta.detail %}
+    <p>{{ sic_code_meta.detail }}</p>
+    {% else %}
+    <p>No description available</p>
+    {% endif %}
+
+    {% if sic_code_meta.includes %}
+    <h3>Includes</h3>
+    {% for include in sic_code_meta.includes %}
+    <p>{{ include }}</p>
+    {% endfor %}
+    {% endif %}
+
+    {% if sic_code_meta.excludes %}
+    <h3>Excludes</h3>
+    {% for exclude in sic_code_meta.excludes %}
+    <p>{{ exclude }}</p>
+    {% endfor %}
+    {% endif %}
+
+    <h3>Highest Level Code Division</h3>
+    <p><strong>{{sic_code_division_meta.code}}</strong> - {{sic_code_division_meta.title}}</p>
+
+    {% if sic_code_division_meta.detail %}
+    <p>{{ sic_code_division_meta.detail }}</p>
+    {% else %}
+    <p>No description available</p>
+    {% endif %}
+
+    {% if sic_code_division_meta.includes %}
+    <h4>Includes</h4>
+    {% for include in sic_code_division_meta.includes %}
+    <p>{{ include }}</p>
+    {% endfor %}
+    {% endif %}
+
+    {% if sic_code_division_meta.excludes %}
+    <h4>Excludes</h4>
+    {% for exclude in sic_code_division_meta.excludes %}
+    <p>{{ exclude }}</p>
+    {% endfor %}
+    {% endif %}
+    """
+
+    # Render the template with the response data and question responses
+    env = Environment(autoescape=select_autoescape(["html", "xml"]))
+    jinja_template = env.from_string(template)
+    rendered_html = jinja_template.render(
+        org_description=org_description,
+        sic_code=sic_code,
+        sic_code_meta=sic_code_meta,
+        sic_code_division_meta=sic_code_division_meta
+    )
+
+    return rendered_html
