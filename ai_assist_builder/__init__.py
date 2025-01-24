@@ -1396,7 +1396,7 @@ def sic_lookup(request, value):  # noqa: PLR0911
 # Handles the redirect after a question has been answered.
 # For interactions this will be to the survey_assist route
 # For regular questions this will be to the survey route
-def update_session_and_redirect(key, value, route):
+def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
     session["response"][key] = request.form.get(value)
 
     print("Update session and redirect session survey data:", session.get("survey"))

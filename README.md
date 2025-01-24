@@ -58,7 +58,7 @@ Build the Docker image:
 make docker-build
 ```
 
-Run the Docker container. The application will be available at http://0.0.0.0:8000:
+Run the Docker container. The application will be available at <http://0.0.0.0:8000>:
 
 *If you would like to edit the environment variables, you can do so by editing the this `Makefile` command.*
 

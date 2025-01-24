@@ -858,7 +858,7 @@ def calculate_average_excluding_max(df):
     filtered_times = df["Interaction_Time_Secs"].dropna()
 
     # If there are only two values, we can't exclude the max, so return the mean of the available values
-    if len(filtered_times) <= 2:
+    if len(filtered_times) <= 2:  # noqa: PLR2004
         return filtered_times.mean()
 
     # Exclude the maximum value only if there are more than one row
