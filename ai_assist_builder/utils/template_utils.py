@@ -87,7 +87,11 @@ def render_classification_results(
 
 
 def render_sic_lookup_unsuccessful(
-    org_description, sic_code_count, sic_code_division_count, potential_sic_codes, potential_sic_divisions
+    org_description,
+    sic_code_count,
+    sic_code_division_count,
+    potential_sic_codes,
+    potential_sic_divisions,
 ):
 
     template = """
@@ -126,7 +130,7 @@ def render_sic_lookup_unsuccessful(
         sic_code_count=sic_code_count,
         sic_code_division_count=sic_code_division_count,
         potential_sic_codes=potential_sic_codes,
-        potential_sic_divisions=potential_sic_divisions
+        potential_sic_divisions=potential_sic_divisions,
     )
 
     return rendered_html
@@ -196,7 +200,7 @@ def render_sic_lookup_results(
         org_description=org_description,
         sic_code=sic_code,
         sic_code_meta=sic_code_meta,
-        sic_code_division_meta=sic_code_division_meta
+        sic_code_division_meta=sic_code_division_meta,
     )
 
     return rendered_html

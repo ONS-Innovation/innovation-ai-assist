@@ -194,7 +194,7 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
         sic_lookup_data = {
             "sic_found": None,
             "sic_lookup_string": "N/A",
-            "sic_lookup_response": {}
+            "sic_lookup_response": {},
         }
 
         # Process each interaction
@@ -277,15 +277,19 @@ def process_survey_responses(  # noqa: C901, PLR0912, PLR0915
                         candidates=final_candidates,
                         justification=justification,
                     )
-            elif type == "sic":  # TODO - type of sic isn't really appropriate, want lookup-sic
+            elif (
+                type == "sic"
+            ):  # TODO - type of sic isn't really appropriate, want lookup-sic
                 sic_lookup_resp = interaction.get("response", {})
                 sic_found = interaction.get("found", False)
                 sic_lookup_string = interaction.get("lookup_string", "N/A")
 
                 # Add the lookup data to the result
-                sic_lookup_data = {"sic_found": sic_found,
-                                   "sic_lookup_string": sic_lookup_string,
-                                   "sic_lookup_response": sic_lookup_resp}
+                sic_lookup_data = {
+                    "sic_found": sic_found,
+                    "sic_lookup_string": sic_lookup_string,
+                    "sic_lookup_response": sic_lookup_resp,
+                }
 
         # Calculate times
         times = calculate_times(response)
@@ -653,7 +657,10 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         if expected_sic == "":
             expected_sic = "N/A"
 
-        if result.classification["final"] is not None and result.classification["initial"] is not None:
+        if (
+            result.classification["final"] is not None
+            and result.classification["initial"] is not None
+        ):
             final_sic = result.classification["final"].ml_code
             initial_sic = result.classification["initial"].ml_code
             final_justification = result.classification["final"].justification
@@ -687,7 +694,9 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
         if result.sic_lookup:
             sic_lookup_status = result.sic_lookup["sic_found"]
             sic_lookup_string = result.sic_lookup["sic_lookup_string"]
-            sic_lookup_code = result.sic_lookup["sic_lookup_response"].get("sic_code", "N/A")
+            sic_lookup_code = result.sic_lookup["sic_lookup_response"].get(
+                "sic_code", "N/A"
+            )
 
         if result_status == "Pass":
             pass_count += 1
@@ -727,7 +736,9 @@ def generate_test_results_df(results, detailed=False):  # noqa: C901, PLR0912, P
 
         # Add initial SIC candidates
         if result.classification["initial"] is not None:
-            for x, candidate in enumerate(result.classification["initial"].candidates, 1):
+            for x, candidate in enumerate(
+                result.classification["initial"].candidates, 1
+            ):
                 row[f"Initial_Alternative_SIC_{x}"] = candidate.code
                 row[f"Initial_Alternative_SIC_Confidence_{x}"] = candidate.confidence
         else:

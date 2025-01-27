@@ -218,7 +218,9 @@ def get_result():
             "None": df["SIC_Lookup_Status"].isna().sum(),
         }
 
-        results["sic_lookup_total_tests"] = sic_lookup_counts["True"] + sic_lookup_counts["False"]
+        results["sic_lookup_total_tests"] = (
+            sic_lookup_counts["True"] + sic_lookup_counts["False"]
+        )
         results["sic_lookup_found"] = sic_lookup_counts["True"]
         results["sic_lookup_not_found"] = sic_lookup_counts["False"]
 
@@ -619,8 +621,12 @@ def format_lookup_response(sic_lookup_response):
         }
     else:
         lookup_result["response"] = {
-            "potential_sic_codes_count": sic_lookup_response["potential_sic_codes_count"],
-            "potential_sic_divisions_count": sic_lookup_response["potential_sic_divisions_count"],
+            "potential_sic_codes_count": sic_lookup_response[
+                "potential_sic_codes_count"
+            ],
+            "potential_sic_divisions_count": sic_lookup_response[
+                "potential_sic_divisions_count"
+            ],
             "potential_sic_codes": sic_lookup_response["potential_sic_codes"],
             "potential_sic_divisions": sic_lookup_response["potential_sic_divisions"],
         }
@@ -1345,7 +1351,10 @@ def followup_redirect():
 
 def sic_lookup(request, value):  # noqa: PLR0911
     # Send Get Request to the API
-    api_url = backend_api_url + f"/survey-assist/sic-lookup?description={request.form.get(value)}&similarity=true"
+    api_url = (
+        backend_api_url
+        + f"/survey-assist/sic-lookup?description={request.form.get(value)}&similarity=true"
+    )
     headers = {"Authorization": f"Bearer {jwt_token}"}
     try:
         response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
@@ -1358,17 +1367,13 @@ def sic_lookup(request, value):  # noqa: PLR0911
     except requests.exceptions.ConnectionError:
         return (
             jsonify(
-                {
-                    "error": "Failed to connect to the API. Please check your connection."
-                }
+                {"error": "Failed to connect to the API. Please check your connection."}
             ),
             502,
         )
     except requests.exceptions.HTTPError as http_err:
         return (
-            jsonify(
-                {"error": f"HTTP error occurred: {http_err.response.status_code}"}
-            ),
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
             500,
         )
     except ValueError:
@@ -1384,11 +1389,7 @@ def sic_lookup(request, value):  # noqa: PLR0911
         )
     except Exception:
         return (
-            jsonify(
-                {
-                    "error": "An unexpected error occurred. Please try again later."
-                }
-            ),
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
             500,
         )
 
@@ -1476,29 +1477,39 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
                             "org_description": request.form.get(value),
                             "sic_code": lookup_resp.get("code"),
                             "sic_code_meta": lookup_resp.get("code_meta"),
-                            "sic_code_division_meta": lookup_resp.get("code_division_meta"),
+                            "sic_code_division_meta": lookup_resp.get(
+                                "code_division_meta"
+                            ),
                         }
                 else:
                     # SIC code not found, check for potential matches
                     if "sic_lookup" not in session:
-                        potential_codes = lookup_resp.get("potential_matches").get("codes", [])[:5]
-                        potential_descriptions = lookup_resp.get("potential_matches").get("descriptions", [])[:5]
-                        potential_divisions = lookup_resp.get("potential_matches").get("divisions", [])[:5]
+                        potential_codes = lookup_resp.get("potential_matches").get(
+                            "codes", []
+                        )[:5]
+                        potential_descriptions = lookup_resp.get(
+                            "potential_matches"
+                        ).get("descriptions", [])[:5]
+                        potential_divisions = lookup_resp.get("potential_matches").get(
+                            "divisions", []
+                        )[:5]
 
                         session["sic_lookup"] = {
                             "org_description": request.form.get(value),
                             "sic_code": None,
                             "sic_code_meta": None,
                             "sic_code_division_meta": None,
-                            "potential_sic_codes_count": lookup_resp.get("potential_matches").get(
-                                "codes_count"
-                            ),
+                            "potential_sic_codes_count": lookup_resp.get(
+                                "potential_matches"
+                            ).get("codes_count"),
                             "potential_sic_divisions_count": lookup_resp.get(
                                 "potential_matches"
                             ).get("divisions_count"),
                             "potential_sic_codes": [
                                 {"code": code, "description": desc}
-                                for code, desc in zip(potential_codes, potential_descriptions)
+                                for code, desc in zip(
+                                    potential_codes, potential_descriptions
+                                )
                             ],
                             "potential_sic_divisions": [
                                 {
