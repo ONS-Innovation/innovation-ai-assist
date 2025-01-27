@@ -48,6 +48,8 @@ from ai_assist_builder.utils.results_utils import (
 from ai_assist_builder.utils.template_utils import (
     datetime_to_string,
     render_classification_results,
+    render_sic_lookup_results,
+    render_sic_lookup_unsuccessful,
 )
 
 DEBUG = True
@@ -153,6 +155,7 @@ def save_as_csv():
 
 
 # TODO - refactor
+# Render the results page
 @app.route("/get_result", methods=["POST"])
 def get_result():
 
@@ -209,7 +212,17 @@ def get_result():
         results["sic_different"] = sic_changes["different"]
         results["avg_interaction_time"] = round(calculate_average_excluding_max(df), 1)
 
-        print("Results:", results)
+        sic_lookup_counts = {
+            "True": df["SIC_Lookup_Status"].eq(True).sum(),
+            "False": df["SIC_Lookup_Status"].eq(False).sum(),
+            "None": df["SIC_Lookup_Status"].isna().sum(),
+        }
+
+        results["sic_lookup_total_tests"] = (
+            sic_lookup_counts["True"] + sic_lookup_counts["False"]
+        )
+        results["sic_lookup_found"] = sic_lookup_counts["True"]
+        results["sic_lookup_not_found"] = sic_lookup_counts["False"]
 
     else:
         # TODO - simplify
@@ -225,6 +238,9 @@ def get_result():
         results["sic_same"] = 0
         results["sic_different"] = 0
         results["avg_interaction_time"] = 0
+        results["sic_lookup_total_tests"] = 0
+        results["sic_lookup_found"] = 0
+        results["sic_lookup_not_found"] = 0
 
     results["users_html"] = generate_user_cards(results["user_totals"])
 
@@ -308,6 +324,9 @@ def index():
 
     if "sa_response" in session:
         session["sa_response"] = []
+
+    if "sic_lookup" in session:
+        session.pop("sic_lookup")
 
     session.modified = True
 
@@ -581,10 +600,74 @@ def save_response():
         return "Invalid question ID", 400
 
 
+# Used to save the sic lookup result to the backed
+def format_lookup_response(sic_lookup_response):
+
+    lookup_result = {
+        "interaction": "lookup",
+        "type": "sic",
+        "lookup_string": sic_lookup_response["org_description"],
+        "found": False,
+        "response": {},
+    }
+
+    # If sic found
+    if sic_lookup_response["sic_code"] is not None:
+        lookup_result["found"] = True
+        lookup_result["response"] = {
+            "sic_code": sic_lookup_response["sic_code"],
+            "sic_code_meta": sic_lookup_response["sic_code_meta"],
+            "sic_code_division_meta": sic_lookup_response["sic_code_division_meta"],
+        }
+    else:
+        lookup_result["response"] = {
+            "potential_sic_codes_count": sic_lookup_response[
+                "potential_sic_codes_count"
+            ],
+            "potential_sic_divisions_count": sic_lookup_response[
+                "potential_sic_divisions_count"
+            ],
+            "potential_sic_codes": sic_lookup_response["potential_sic_codes"],
+            "potential_sic_divisions": sic_lookup_response["potential_sic_divisions"],
+        }
+
+    return lookup_result
+
+
+# Used to display the SIC lookup results on the UI
+def create_lookup_result(sic_lookup_response):
+
+    # If sic found
+    if sic_lookup_response["sic_code"] is not None:
+        html_output = render_sic_lookup_results(
+            sic_lookup_response["org_description"],
+            sic_lookup_response["sic_code"],
+            sic_lookup_response["sic_code_meta"],
+            sic_lookup_response["sic_code_division_meta"],
+        )
+    else:
+        html_output = render_sic_lookup_unsuccessful(
+            sic_lookup_response["org_description"],
+            sic_lookup_response["potential_sic_codes_count"],
+            sic_lookup_response["potential_sic_divisions_count"],
+            sic_lookup_response["potential_sic_codes"],
+            sic_lookup_response["potential_sic_divisions"],
+        )
+
+    lookup_result = {
+        "interaction": "classification",
+        "type": "sic-lookup",
+        "title": "SIC Lookup",
+        "html_output": html_output,
+    }
+
+    return lookup_result
+
+
 # Make a final API request to get the results of the survey assist
 # TODO - refactor
 @app.route("/survey_assist_results", methods=["GET", "POST"])
-def survey_assist_results():
+def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 
     # Get the survey data from the session
     user_survey = session.get("survey")
@@ -730,8 +813,19 @@ def survey_assist_results():
             },
         )
 
+        if "sic_lookup" in session:
+            sic_lookup_res = session.get("sic_lookup")
+            lookup_result = create_lookup_result(sic_lookup_res)
+            sa_result.append(lookup_result)
+
         return render_template("classification_template.html", sa_result=sa_result)
     else:
+        if "sic_lookup" in session:
+            sic_lookup_res = session.get("sic_lookup")
+            lookup_result = create_lookup_result(sic_lookup_res)
+            sa_result = [lookup_result]
+            return render_template("siclookup_template.html", sa_result=sa_result)
+
         print("Session data not found")
         return redirect(url_for("thank_you", survey=SURVEY_NAME))
 
@@ -740,9 +834,6 @@ def survey_assist_results():
 # TODO - split into functions
 @app.route("/save_results", methods=["GET", "POST"])
 def save_results():  # noqa: PLR0911, PLR0915
-
-    # print the method used
-    # print("SAVE SAVE SAVE - save_results "+request.method)
 
     survey_data = session.get("survey")
 
@@ -793,7 +884,12 @@ def save_results():  # noqa: PLR0911, PLR0915
         for index, response in enumerate(sa_response)
     ]
 
-    print("=====SA RESPONSE LIST=====")
+    if "sic_lookup" in session:
+        sic_lookup_response = session.get("sic_lookup")
+        sic_lookup_result = format_lookup_response(sic_lookup_response)
+        sa_response_list.append(sic_lookup_result)
+
+    print("=====SA INTERACTIONS LIST=====")
     print(sa_response_list)
     print("==========================")
 
@@ -850,6 +946,9 @@ def save_results():  # noqa: PLR0911, PLR0915
             saved_response["response"]["survey_response"]["questions"][1]["response"],
         )
 
+        # Add the test notes to the saved response
+        # These were not added when the results were saved to survey_assist (above)
+        # as this is primarily for the test harness and not a part of the survey journey.
         notes = {
             "notes": [
                 {
@@ -1097,6 +1196,21 @@ def print_api_response(random_id, character_name):
         print("Character name:", character_name)
 
 
+def consent_skip():
+    user_survey = session.get("survey")
+    user_survey.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
+
+    # If sa_response in in the session, remove it
+    if "sa_response" in session:
+        print("Removing sa_response from session")
+        session.pop("sa_response")
+
+    # Skip to next standard question
+    session["current_question_index"] += 1
+    session.modified = True
+    return redirect(url_for("survey"))
+
+
 # TODO - move to a separate file
 def consent_redirect():
     user_survey = session.get("survey")
@@ -1235,10 +1349,55 @@ def followup_redirect():
         return redirect(url_for("survey"))
 
 
+def sic_lookup(request, value):  # noqa: PLR0911
+    # Send Get Request to the API
+    api_url = (
+        backend_api_url
+        + f"/survey-assist/sic-lookup?description={request.form.get(value)}&similarity=true"
+    )
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    try:
+        response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
+        response_data = response.json()
+        if response_data.get("code"):
+            print("SIC Code found:", response_data.get("code"))
+        return response_data
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+    except requests.exceptions.ConnectionError:
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
+    except requests.exceptions.HTTPError as http_err:
+        return (
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
+            500,
+        )
+    except ValueError:
+        # For JSON decoding errors
+        return jsonify({"error": "Failed to parse the response from the API."}), 500
+    except KeyError as key_err:
+        # This can be invalid JWT, check GCP logs
+        return (
+            jsonify(
+                {"error": f"Missing expected data: {str(key_err)}"}  # noqa: RUF010
+            ),
+            500,
+        )
+    except Exception:
+        return (
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
+            500,
+        )
+
+
 # Handles the redirect after a question has been answered.
 # For interactions this will be to the survey_assist route
 # For regular questions this will be to the survey route
-def update_session_and_redirect(key, value, route):
+def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
     session["response"][key] = request.form.get(value)
 
     print("Update session and redirect session survey data:", session.get("survey"))
@@ -1295,13 +1454,88 @@ def update_session_and_redirect(key, value, route):
     # then redirect to the consent page to ask the user if they want to
     # continue with the AI assist interaction
     if ai_assist.get("enabled", True):
+        consent = False
+
         session.modified = True
         interactions = ai_assist.get("interactions")
         if len(interactions) > 0 and current_question.get(
             "question_id"
         ) == interactions[0].get("after_question_id"):
-            # print("AI Assist interaction detected - REDIRECTING to consent")
-            return redirect(url_for("survey_assist_consent"))
+
+            if ai_assist.get("sic_lookup", False):
+
+                # Make request to lookup org description in SIC knowledge base
+                lookup_resp = sic_lookup(request, value)
+
+                if lookup_resp.get("error"):
+                    return lookup_resp
+
+                if lookup_resp.get("code"):
+                    print("SIC Code found:", lookup_resp.get("code"))
+                    if "sic_lookup" not in session:
+                        session["sic_lookup"] = {
+                            "org_description": request.form.get(value),
+                            "sic_code": lookup_resp.get("code"),
+                            "sic_code_meta": lookup_resp.get("code_meta"),
+                            "sic_code_division_meta": lookup_resp.get(
+                                "code_division_meta"
+                            ),
+                        }
+                else:
+                    # SIC code not found, check for potential matches
+                    if "sic_lookup" not in session:
+                        potential_codes = lookup_resp.get("potential_matches").get(
+                            "codes", []
+                        )[:5]
+                        potential_descriptions = lookup_resp.get(
+                            "potential_matches"
+                        ).get("descriptions", [])[:5]
+                        potential_divisions = lookup_resp.get("potential_matches").get(
+                            "divisions", []
+                        )[:5]
+
+                        session["sic_lookup"] = {
+                            "org_description": request.form.get(value),
+                            "sic_code": None,
+                            "sic_code_meta": None,
+                            "sic_code_division_meta": None,
+                            "potential_sic_codes_count": lookup_resp.get(
+                                "potential_matches"
+                            ).get("codes_count"),
+                            "potential_sic_divisions_count": lookup_resp.get(
+                                "potential_matches"
+                            ).get("divisions_count"),
+                            "potential_sic_codes": [
+                                {"code": code, "description": desc}
+                                for code, desc in zip(
+                                    potential_codes, potential_descriptions
+                                )
+                            ],
+                            "potential_sic_divisions": [
+                                {
+                                    "code": division.get("code"),
+                                    "title": division.get("meta", {}).get("title"),
+                                    "detail": division.get("meta", {}).get("detail"),
+                                }
+                                for division in potential_divisions
+                            ],
+                        }
+
+                    consent = True
+
+                session.modified = True
+            else:
+                # SIC Lookup not enabled, but AI Assist is enabled
+                # ask consent
+                consent = True
+
+            if consent:
+                # print("AI Assist interaction detected - REDIRECTING to consent")
+                return redirect(url_for("survey_assist_consent"))
+            else:
+                # SIC code found, skip Survey Assist consent
+                print("SIC code found, skipping Survey Assist consent")
+                return consent_skip()
 
     session["current_question_index"] += 1
     session.modified = True

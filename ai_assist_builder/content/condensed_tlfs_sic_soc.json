@@ -86,6 +86,7 @@
     ],
     "ai_assist": {
       "enabled": true,
+      "sic_lookup": true,
       "question_assist_label": "<br><strong>(Asked by Survey Assist)</strong></br>",
       "consent": {
         "required": true,

@@ -133,10 +133,10 @@ ai_assist_builder/templates/layout
 content/.DS_Store
 /.idea
 
-# exclude user list
-ai_assist_builder/data/users.json
+ai_assist_builder/data/*
+# Only allow example data in git
+!ai_assist_builderdata/example_*
 
 test.py
-example_survey_data.txt
-
+*.txt
 *secret.json

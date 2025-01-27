@@ -35,26 +35,20 @@
 } %}
 
 {% block main %}
-{% set tabs = [] %}
-{% set tab_entry = {} %}
-
-{% for entry in sa_result %}
-    {% set tab_entry = {
-        "id": entry.type,
-        "title": entry.title,
-        "showTitle": true,
-        "content": entry.html_output
-    } %}
-    {% set tabs = (tabs.append(tab_entry), tabs) %}
-{% endfor %}
-
 <h1>Survey Assist Results</h1>
 <p>Use the tabs below to see the output from Survey Assist for the interactions configured in the survey</p>
 {{
     onsTabs({
         "title": 'Contents',
         "titleClasses": 'ons-u-fs-m',
-        "tabs": tabs
+        "tabs": [
+            {
+                "id": sa_result[0].type,
+                "title": sa_result[0].title,
+                "showTitle": true,
+                "content": sa_result[0].html_output
+            }
+        ]
     })
 }}
 
