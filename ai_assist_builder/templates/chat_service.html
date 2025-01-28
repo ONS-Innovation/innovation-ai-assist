@@ -1,0 +1,632 @@
+{% extends "layout/_template.njk" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+
+{%  
+    set pageConfig = {
+        "header": {
+            "title": 'TLFS Survey Assist Prototype',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "footer": {
+            "OGLLink": true,
+            "legal": [
+            ],
+              },
+    }
+%}
+{% block head %}
+<style>
+    * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+}
+
+.header {
+  background-color: #003c71;
+  color: white;
+  padding: 1rem 2rem;
+}
+
+.header .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav {
+  margin-top: 1rem;
+}
+
+.nav a {
+  color: white;
+  margin-right: 1rem;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.search-bar {
+  background-color: #e8e8e8;
+  padding: 1rem;
+  text-align: center;
+}
+
+.search-bar input {
+  padding: 0.5rem;
+  width: 50%;
+  margin-right: 0.5rem;
+}
+
+.search-bar button {
+  padding: 0.5rem 1rem;
+  background-color: #003c71;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #005ea5;
+}
+
+.main-content {
+  padding: 2rem;
+}
+
+.main-content h1 {
+  font-size: 2rem;
+  color: #5b2c89;
+}
+
+.main-content p {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.card {
+  background-color: white;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #5b2c89;
+}
+
+.card strong {
+  font-size: 1.2rem;
+  color: #003c71;
+}
+
+.card p {
+  margin: 0.5rem 0;
+}
+
+.card a.btn {
+    display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #5b2c89;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.card a.btn:hover {
+  background-color: #4a2070;
+}
+
+/* Column spans */
+.span-12 {
+  grid-column: span 12;
+}
+
+.span-9 {
+  grid-column: span 9;
+}
+
+.span-6 {
+  grid-column: span 6;
+}
+
+.span-3 {
+  grid-column: span 3;
+}
+
+.terms-checkbox {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.terms-checkbox input {
+  margin-right: 10px;
+}
+
+/* Chat Widget Styles */
+#chat-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#chat-header {
+  background-color: #003c71;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+  text-align: center;
+  cursor: pointer;
+}
+
+#chat-body {
+  background-color: #f5f5f5;
+  display: none;
+  flex-direction: column;
+  height: 500px;
+  border: 1px solid #ddd;
+}
+
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+#chat-messages div {
+  margin: 5px 0;
+  padding: 8px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+#chat-messages .user {
+  background-color: #003c71;
+  color: white;
+  align-self: flex-end;
+}
+
+#chat-messages .bot {
+  background-color: #5b2c89; /* Purple background */
+  color: white; /* White text for better contrast */
+  align-self: flex-start;
+  padding: 8px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+#chat-input {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: #e8e8e8;
+}
+
+#chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+#chat-input button {
+  padding: 8px 16px;
+  background-color: #003c71;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#chat-input button:hover {
+  background-color: #005ea5;
+}
+
+#chat-messages .bot.typing {
+  background-color: #e6e6e6; /* Light grey for typing indicator */
+  color: #5b2c89; /* Purple dots to match the bot */
+  font-style: italic;
+  align-self: flex-start;
+  padding: 8px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.chat-messages {
+  height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #f5f5f5;
+}
+
+/* Bot message styles (aligned right) */
+.bot-message {
+  text-align: right;
+  margin: 10px 0;
+}
+
+.bot-message .message-bubble {
+  display: inline-block;
+  background-color: #6a1b9a; /* Purple */
+  color: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  border-bottom-right-radius: 0;
+  max-width: 80%;
+}
+
+/* User message styles (aligned left) */
+.user-message {
+  text-align: left;
+  margin: 10px 0;
+}
+
+.user-message .message-bubble {
+  display: inline-block;
+  background-color: #e0e0e0; /* Light gray */
+  color: #000;
+  padding: 10px;
+  border-radius: 12px;
+  border-bottom-left-radius: 0;
+  max-width: 80%;
+}
+
+</style>
+{% endblock %}
+{% block main %}  
+<header class="header">
+    <div class="logo">Office for National Statistics</div>
+    <nav class="nav">
+      <a href="#">Home</a>
+      <a href="#">Business, Industry and Trade</a>
+      <a href="#">Economy</a>
+      <a href="#">Employment and Labour Market</a>
+      <a href="#">People, Population and Community</a>
+      <a href="#">Taking part in a survey?</a>
+    </nav>
+  </header>
+  
+  <section class="search-bar">
+    <input type="text" placeholder="Search for a keyword(s) or time series ID">
+    <button>Search</button>
+  </section>
+  
+  <section class="main-content">
+    
+    <div class="grid">
+      <div class="card span-12">
+        <h1>Employment Insight</h1>
+        <p>A BETA service to determine how best to classify the place where you work.</p>
+      </div>
+      <!-- First row -->
+      <div class="card span-6">
+        <h2>Help ONS Test a Valuable New Service</h2>
+        <p>To capture where people are working and improve the statistics behind employment and workplaces it is important for the ONS to accurately classify the companies that people work for.</p>
+        <p>In less than <strong>5 minutes</strong>, answering <strong>6 questions</strong> you will:</p> 
+        <ul style="list-style-type: none;">
+          <li><strong>Shape</strong> a new tool from the ONS</li>
+          <li><strong>Contribute</strong> to important statistics that influence government decisions</li>
+          <li><strong>Help</strong> the environment (we plant a tree for every contribution!)</li>
+      </ul>
+      </div>
+      
+      <div class="card span-6">
+        <h2>Terms & Conditions</h2>
+        <p>In testing this solution you will be interacting with an experimental service by ONS that will interact with an artificial intelligence solution.</p>
+        <p>By using this chat, you agree to share responses with AI for ONS testing. Avoid sharing sensitive data</p>
+        <br>
+        <div class="terms-checkbox">
+          <input type="checkbox" id="accept-terms" name="accept-terms" />
+          <label for="accept-terms">I accept the Terms & Conditions</label>
+        </div>
+      </div>
+      
+      <!-- Second row -->
+      <div class="card span-12">
+        <h2>Your Help Matters</h2>
+        <p>By testing our experimental service, you’re helping refine processes that ensure employment statistics are accurate and policies are well-informed. Your feedback directly shapes a vital service, helping it meet public needs and contribute to reliable data that supports employment decisions nationwide. Thank you for making a difference!</p>
+      </div>
+      
+      <div class="card span-12">
+        <h2>Rewarding</h2>
+        <p>We value your time testing our tool. To show our appreciation, we’ll plant a tree on your behalf—helping the environment, reducing carbon, and creating a lasting impact while acknowledging your contribution to refining our service. Thank you!</p>
+        
+      </div>
+    </div>
+  </section>
+  <div id="chat-widget">
+    <div id="chat-header">Chat with us</div>
+    <div id="chat-body">
+      <div id="chat-messages"></div>
+      <div id="chat-input">
+        <input type="text" id="chat-message" placeholder="Type your message...">
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Start the conversation with a fixed script
+const chatMessages = document.getElementById("chat-messages");
+const messageInput = document.getElementById("chat-message");
+const sendButton = document.getElementById("chat-send");
+
+
+// Toggle chat body visibility
+document.getElementById("chat-header").addEventListener("click", function () {
+  const chatBody = document.getElementById("chat-body");
+  chatBody.style.display = chatBody.style.display === "flex" ? "none" : "flex";
+});
+
+let step = 0; // Track the current step in the conversation
+
+// Send the first message automatically
+displayTypingIndicator(() => {
+  addMessage("bot", "Hi, will you help us answer a few short questions about your employment? Yes or no.");
+});
+
+// Handle sending messages
+function sendMessage() {
+  const userMessage = messageInput.value.trim();
+  if (userMessage !== "") {
+    addMessage("user", userMessage);
+    handleResponse(userMessage.toLowerCase());
+    messageInput.value = "";
+  }
+}
+
+// Add "Enter" key event listener
+messageInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    sendMessage(); // Send the message when Enter is pressed
+    event.preventDefault(); // Prevent the default behavior of a line break
+  }
+});
+
+// Add click event listener to the "Send" button
+sendButton.addEventListener("click", sendMessage);
+
+// Add a message to the chat
+function addMessage(sender, text) {
+  const message = document.createElement("div");
+  message.className = sender;
+  message.textContent = text;
+  chatMessages.appendChild(message);
+  chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+}
+
+// Display typing indicator and delay before the bot sends the message
+function displayTypingIndicator(callback) {
+  const typingMessage = document.createElement("div");
+  typingMessage.className = "bot typing";
+  typingMessage.textContent = "...";
+  chatMessages.appendChild(typingMessage);
+  chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+
+  // Simulate typing for 1 second
+  setTimeout(() => {
+    chatMessages.removeChild(typingMessage);
+    callback(); // Send the actual message
+  }, 1000);
+}
+
+function callChatAssist(userData, nextStep) {
+  fetch("/chat_assist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData), // Send user data to Flask
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        addMessage("bot", `Error: ${data.error}`);
+      } else {
+        step = nextStep; // Move to the next step
+      }
+    })
+    .catch((err) => {
+      addMessage("bot", "An error occurred while processing your data. Please try again later.");
+      console.error("Error:", err);
+    });
+}
+
+const userData = {
+  job_title: null,
+  job_description: null,
+  org_description: null,
+};
+
+// Handle responses and move through the script
+function handleResponse(response) {
+  if (step === 0) {
+    if (response === "yes") {
+      step = 1;
+      displayTypingIndicator(() => {
+        addMessage("bot", "Thanks. Did you work in paid employment last week?");
+      });
+    } else if (response === "no") {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Thank you. If you change your mind please visit again. Goodbye.");
+      });
+    } else {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Please respond with 'yes' or 'no'.");
+      });
+    }
+  } else if (step === 1) {
+    if (response === "yes") {
+      step = 2;
+      displayTypingIndicator(() => {
+        addMessage("bot", "What is your job title?");
+      });
+    } else if (response === "no") {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Thank you. Your answers help build a picture of employment in the UK. Goodbye.");
+      });
+    } else {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Please respond with 'yes' or 'no'.");
+      });
+    }
+  } else if (step === 2) {
+    // Store the job title
+    userData.job_title = response;
+    step = 3;
+    displayTypingIndicator(() => {
+      addMessage("bot", `In your role as ${response}, what do you typically do? For guidance say help.`);
+    });
+  } else if (step === 3) {
+    if (response === "help") {
+      displayTypingIndicator(() => {
+        addMessage(
+          "bot",
+          "What are your daily duties at your workplace? E.g., a cleaner might clean the office, ensure the lights are switched off, and lock up the office at the end of the day."
+        );
+      });
+    } else {
+      // Store the job description
+      userData.job_description = response;
+      step = 4;
+      displayTypingIndicator(() => {
+        addMessage("bot", "What does the company you work for do? For guidance say help.");
+      });
+    }
+  } else if (step === 4) {
+    userData.org_description = response;
+
+    displayTypingIndicator(() => {
+      addMessage("bot", `Checking our understanding. Please wait.`);
+      // Log the JSON data (replace this with an API call)
+      console.log("User Data:", JSON.stringify(userData, null, 2));
+    });
+
+    fetch("/chat_assist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData), // Send user data to Flask
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          addMessage("bot", `Error: ${data.error}`);
+        } else {
+          console.log("Data:", data);
+          console.log("Increment step");
+          step = 5;
+          displayTypingIndicator(() => {
+            addMessage("bot", `${data.followup}.`);
+          });
+        }
+      })
+      .catch((err) => {
+        addMessage("bot", "An error occurred while processing your data. Please try again later.");
+        console.error("Error:", err);
+      });
+  }
+  else if (step === 5) {
+    userData.org_description += ". "+response;
+
+    console.log("User Data:", JSON.stringify(userData, null, 2));
+
+    displayTypingIndicator(() => {
+      addMessage("bot", `Confirming some details. Please wait.`);
+      // Log the JSON data (replace this with an API call)
+      console.log("User Data:", JSON.stringify(userData, null, 2));
+    });
+
+    fetch("/chat_assist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData), // Send user data to Flask
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          addMessage("bot", `Error: ${data.error}`);
+        } else {
+          console.log("Data:", data);
+          console.log("Increment step");
+          step = 6;
+          displayTypingIndicator(() => {
+            addMessage("bot", `Based on this conversation your company most likely falls into the category: ${data.sic_description}. Does this sound reasonable? Please anwser Yes or No.`);
+          });
+        }
+      })
+      .catch((err) => {
+        addMessage("bot", "An error occurred while processing your data. Please try again later.");
+        console.error("Error:", err);
+      });
+  }
+  else if (step === 6) {
+    if (response === "yes") {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Great! Thank you for your help. Goodbye.");
+      });
+    } else if (response === "no") {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Thank you for your feedback. We will review the data and improve our service. Goodbye.");
+      });
+    } else {
+      displayTypingIndicator(() => {
+        addMessage("bot", "Please respond with 'yes' or 'no'.");
+      });
+    }
+  }
+
+}
+
+// Generate a random response for the last message
+function generateRandomResponse() {
+  const responses = [
+    "an office building",
+    "a factory",
+    "a hospital",
+    "a retail store",
+    "a school",
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
+}
+
+  </script>
+{% endblock %}

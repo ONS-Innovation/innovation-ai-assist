@@ -273,6 +273,23 @@ def testing_admin():
     return render_template("testing_admin.html", user_checkboxes=user_checkboxes)
 
 
+@app.route("/ons_mockup", methods=["GET"])
+def ons_mockup():
+
+    # Get the role of the user
+    role = session.get("role")
+    print(f"Role: {role}")
+    if role not in ["admin", "tester"]:
+        return render_template("error_ons_mockup.html")
+
+    return render_template("ons_mockup.html")
+
+
+@app.route("/chat_service", methods=["GET"])
+def chat_service():
+    return render_template("chat_service.html")
+
+
 @app.route("/login", methods=["GET"])
 def login():
     return render_template("login.html")
@@ -375,6 +392,75 @@ def survey():
 
     return render_template("question_template.html", **current_question)
 
+
+@app.route("/chat_assist", methods=["POST"])
+def chat_assist():
+    llm = "gemini"  # gemini or chat-gpt
+    type = "sic"  # sic or soc or sic_soc
+
+    # Find the question about job_title
+    user_response = request.json
+
+    api_url = backend_api_url + "/survey-assist/classify"
+    print("SENDING REQUEST API URL:", api_url)
+
+    body = {
+        "llm": llm,
+        "type": type,
+        "job_title": user_response.get("job_title"),
+        "job_description": user_response.get("job_description"),
+        "org_description": user_response.get("org_description"),
+    }
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    try:
+        # Send a request to the Survey Assist API
+        response = requests.post(
+            api_url, json=body, headers=headers, timeout=API_TIMER_SEC
+        )
+        response.raise_for_status()  # Raise an error for HTTP codes 4xx/5xx
+        response_data = response.json()
+        print("RESPONSE DATA:", response_data)
+
+        # Return the result back to the chatbot
+        return jsonify(
+            {
+                "followup": response_data["followup"],
+                "sic_code": response_data["sic_code"],
+                "sic_description": response_data["sic_description"],
+                "sic_candidates": response_data["sic_candidates"],
+                "reasoning": response_data["reasoning"],
+            }), 200
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+    except requests.exceptions.ConnectionError:
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
+    except requests.exceptions.HTTPError as http_err:
+        return (
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
+            500,
+        )
+    except ValueError:
+        # For JSON decoding errors
+        return jsonify({"error": "Failed to parse the response from the API."}), 500
+    except KeyError as key_err:
+        # This can be invalid JWT, check GCP logs
+        return (
+            jsonify(
+                {"error": f"Missing expected data: {str(key_err)}"}  # noqa: RUF010
+            ),
+            500,
+        )
+    except Exception:
+        return (
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
+            500,
+        )
 
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - split out to functions
