@@ -197,7 +197,7 @@ body {
   background-color: #f5f5f5;
   display: none;
   flex-direction: column;
-  height: 500px;
+  height: 600px;
   border: 1px solid #ddd;
 }
 
@@ -337,11 +337,11 @@ body {
       <div class="card span-6">
         <h2>Help ONS Test a Valuable New Service</h2>
         <p>To capture where people are working and improve the statistics behind employment and workplaces it is important for the ONS to accurately classify the companies that people work for.</p>
-        <p>In less than <strong>5 minutes</strong>, answering <strong>6 questions</strong> you will:</p> 
+        <p>In just <strong>5 minutes</strong> you will:</p> 
         <ul style="list-style-type: none;">
           <li><strong>Shape</strong> a new tool from the ONS</li>
           <li><strong>Contribute</strong> to important statistics that influence government decisions</li>
-          <li><strong>Help</strong> the environment (we plant a tree for every contribution!)</li>
+          <li><strong>Help</strong> the environment, we plant a tree for every contribution!</li>
       </ul>
       </div>
       
@@ -370,7 +370,7 @@ body {
     </div>
   </section>
   <div id="chat-widget">
-    <div id="chat-header">Chat with us</div>
+    <div id="chat-header">Trial our New Service</div>
     <div id="chat-body">
       <div id="chat-messages"></div>
       <div id="chat-input">
@@ -397,7 +397,7 @@ let step = 0; // Track the current step in the conversation
 
 // Send the first message automatically
 displayTypingIndicator(() => {
-  addMessage("bot", "Hi, will you help us answer a few short questions about your employment? Yes or no.");
+  addMessage("bot", "Hi, will you help us answer a few short questions about your employment?<br><br>Please answer <strong>yes</strong> or <strong>no</strong>.");
 });
 
 // Handle sending messages
@@ -425,7 +425,15 @@ sendButton.addEventListener("click", sendMessage);
 function addMessage(sender, text) {
   const message = document.createElement("div");
   message.className = sender;
-  message.textContent = text;
+  if (sender === "user")
+  {
+    message.textContent = text;
+  }
+  else
+  {
+    // Allow HTML in bot messages
+    message.innerHTML = text;
+  }
   chatMessages.appendChild(message);
   chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
 }
@@ -479,15 +487,15 @@ function handleResponse(response) {
     if (response === "yes") {
       step = 1;
       displayTypingIndicator(() => {
-        addMessage("bot", "Thanks. Did you work in paid employment last week?");
+        addMessage("bot", "Did you work in paid employment last week?<br><br>Please answer <strong>yes</strong> or <strong>no</strong>.");
       });
     } else if (response === "no") {
       displayTypingIndicator(() => {
-        addMessage("bot", "Thank you. If you change your mind please visit again. Goodbye.");
+        addMessage("bot", "Thank you. If you change your mind please visit again.<br><br>Goodbye.");
       });
     } else {
       displayTypingIndicator(() => {
-        addMessage("bot", "Please respond with 'yes' or 'no'.");
+        addMessage("bot", "Please answer <strong>yes</strong> or <strong>no</strong>.");
       });
     }
   } else if (step === 1) {
@@ -498,11 +506,11 @@ function handleResponse(response) {
       });
     } else if (response === "no") {
       displayTypingIndicator(() => {
-        addMessage("bot", "Thank you. Your answers help build a picture of employment in the UK. Goodbye.");
+        addMessage("bot", "Thank you. Your answers help build a picture of employment in the UK.<br><br>Goodbye.");
       });
     } else {
       displayTypingIndicator(() => {
-        addMessage("bot", "Please respond with 'yes' or 'no'.");
+        addMessage("bot", "Please answer <strong>yes</strong> or <strong>no</strong>.");
       });
     }
   } else if (step === 2) {
@@ -510,14 +518,14 @@ function handleResponse(response) {
     userData.job_title = response;
     step = 3;
     displayTypingIndicator(() => {
-      addMessage("bot", `In your role as ${response}, what do you typically do? For guidance say help.`);
+      addMessage("bot", `In your role as <strong>${response}</strong>, what do you typically do?<br><br>For guidance say <strong>help</strong>.`);
     });
   } else if (step === 3) {
     if (response === "help") {
       displayTypingIndicator(() => {
         addMessage(
           "bot",
-          "What are your daily duties at your workplace? E.g., a cleaner might clean the office, ensure the lights are switched off, and lock up the office at the end of the day."
+          "What are your daily duties at your workplace?<br><br>E.g.<br>A cleaner might respond - clean the office, ensure the lights are switched off, and lock up the office at the end of the day."
         );
       });
     } else {
@@ -525,11 +533,85 @@ function handleResponse(response) {
       userData.job_description = response;
       step = 4;
       displayTypingIndicator(() => {
-        addMessage("bot", "What does the company you work for do? For guidance say help.");
+        addMessage("bot", "What does the company you work for do?<br><br>For guidance say <strong>help</strong>.");
       });
     }
   } else if (step === 4) {
     userData.org_description = response;
+
+    if (response === "help") {
+      displayTypingIndicator(() => {
+        addMessage(
+          "bot",
+          "We’re asking about what your <strong>employer</strong> mainly does as a business or organisation.<br><br>E.g. if you work in a school, you might answer <strong>primary school education</strong>.<br><br>If you work in a factory that produces food, you might respond <strong>food manufacturing</strong>. "
+        );
+      });
+    } else {
+      // SIC Lookup
+      fetch("/chat_lookup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData), // Send user data to Flask
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            addMessage("bot", `Error: ${data.error}`);
+          } else {
+            console.log("Data:", data);
+            console.log("Increment step");
+            if (data.code) {
+              step = 7
+              displayTypingIndicator(() => {
+              addMessage("bot", `We think your <strong>employer</strong> most likely falls into the category:<br><br><strong>${data.code} - ${data.code_meta.title}</strong> 
+              <br><br>
+              Does this sound reasonable?
+              <br><br>Please answer <strong>yes</strong> or <strong>no</strong>.`);
+              });
+            }
+            else {
+              step = 6;
+              displayTypingIndicator(() => {
+                addMessage("bot", "One moment...");
+              });
+
+              fetch("/chat_assist", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(userData), // Send user data to Flask
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.error) {
+                    addMessage("bot", `Error: ${data.error}`);
+                  } else {
+                    console.log("Data:", data);
+                    console.log("Increment step");
+                    step = 6;
+                    displayTypingIndicator(() => {
+                      addMessage("bot", `${data.followup}`);
+                    });
+                  }
+                })
+                .catch((err) => {
+                  addMessage("bot", "An error occurred while processing your data. Please try again later.");
+                  console.error("Error:", err);
+                });
+            }
+          }
+        })
+        .catch((err) => {
+          addMessage("bot", "An error occurred while processing your data. Please try again later.");
+          console.error("Error:", err);
+        });
+    }
+
+  } else if (step === 5) {
+    console.log("Step 5");
 
     displayTypingIndicator(() => {
       addMessage("bot", `Checking our understanding. Please wait.`);
@@ -551,7 +633,7 @@ function handleResponse(response) {
         } else {
           console.log("Data:", data);
           console.log("Increment step");
-          step = 5;
+          step = 6;
           displayTypingIndicator(() => {
             addMessage("bot", `${data.followup}.`);
           });
@@ -562,7 +644,7 @@ function handleResponse(response) {
         console.error("Error:", err);
       });
   }
-  else if (step === 5) {
+  else if (step === 6) {
     userData.org_description += ". "+response;
 
     console.log("User Data:", JSON.stringify(userData, null, 2));
@@ -587,9 +669,12 @@ function handleResponse(response) {
         } else {
           console.log("Data:", data);
           console.log("Increment step");
-          step = 6;
+          step = 7;
           displayTypingIndicator(() => {
-            addMessage("bot", `Based on this conversation your company most likely falls into the category: ${data.sic_description}. Does this sound reasonable? Please anwser Yes or No.`);
+            addMessage("bot", `We think your company most likely falls into the category:<br><br><strong>${data.sic_code} - ${data.sic_description}</strong>. 
+            <br><br>
+            Does this sound reasonable?
+            <br><br>Please answer <strong>yes</strong> or <strong>no</strong>.`);
           });
         }
       })
@@ -598,18 +683,18 @@ function handleResponse(response) {
         console.error("Error:", err);
       });
   }
-  else if (step === 6) {
+  else if (step === 7) {
     if (response === "yes") {
       displayTypingIndicator(() => {
         addMessage("bot", "Great! Thank you for your help. Goodbye.");
       });
     } else if (response === "no") {
       displayTypingIndicator(() => {
-        addMessage("bot", "Thank you for your feedback. We will review the data and improve our service. Goodbye.");
+        addMessage("bot", "Thank you for your feedback. We will review the data and improve our service.<br><br>Goodbye.");
       });
     } else {
       displayTypingIndicator(() => {
-        addMessage("bot", "Please respond with 'yes' or 'no'.");
+        addMessage("bot", "Please answer <strong>yes</strong> or <strong>no</strong>.");
       });
     }
   }

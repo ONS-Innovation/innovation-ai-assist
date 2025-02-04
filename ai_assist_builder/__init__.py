@@ -393,6 +393,57 @@ def survey():
     return render_template("question_template.html", **current_question)
 
 
+@app.route("/chat_lookup", methods=["POST"])
+def chat_lookup():
+    chat_response = request.json
+    org_description = chat_response.get("org_description")
+
+    api_url = (
+        backend_api_url
+        + f"/survey-assist/sic-lookup?description={org_description}&similarity=true"
+    )
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    try:
+        response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
+        response_data = response.json()
+
+        print("LOOKUP RESPONSE DATA:", response_data)
+
+        if response_data.get("code"):
+            print("SIC Code found:", response_data.get("code"))
+        return response_data
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+    except requests.exceptions.ConnectionError:
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
+    except requests.exceptions.HTTPError as http_err:
+        return (
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
+            500,
+        )
+    except ValueError:
+        # For JSON decoding errors
+        return jsonify({"error": "Failed to parse the response from the API."}), 500
+    except KeyError as key_err:
+        # This can be invalid JWT, check GCP logs
+        return (
+            jsonify(
+                {"error": f"Missing expected data: {str(key_err)}"}  # noqa: RUF010
+            ),
+            500,
+        )
+    except Exception:
+        return (
+            jsonify({"error": "An unexpected error occurred. Please try again later."}),
+            500,
+        )
+
+
 @app.route("/chat_assist", methods=["POST"])
 def chat_assist():
     llm = "gemini"  # gemini or chat-gpt
