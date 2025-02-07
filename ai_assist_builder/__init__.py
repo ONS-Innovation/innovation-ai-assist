@@ -394,7 +394,7 @@ def survey():
 
 
 @app.route("/chat_lookup", methods=["POST"])
-def chat_lookup():
+def chat_lookup():  # noqa: PLR0911
     chat_response = request.json
     org_description = chat_response.get("org_description")
 
@@ -445,7 +445,7 @@ def chat_lookup():
 
 
 @app.route("/chat_assist", methods=["POST"])
-def chat_assist():
+def chat_assist():  # noqa: PLR0911
     llm = "gemini"  # gemini or chat-gpt
     type = "sic"  # sic or soc or sic_soc
 
@@ -474,14 +474,18 @@ def chat_assist():
         print("RESPONSE DATA:", response_data)
 
         # Return the result back to the chatbot
-        return jsonify(
-            {
-                "followup": response_data["followup"],
-                "sic_code": response_data["sic_code"],
-                "sic_description": response_data["sic_description"],
-                "sic_candidates": response_data["sic_candidates"],
-                "reasoning": response_data["reasoning"],
-            }), 200
+        return (
+            jsonify(
+                {
+                    "followup": response_data["followup"],
+                    "sic_code": response_data["sic_code"],
+                    "sic_description": response_data["sic_description"],
+                    "sic_candidates": response_data["sic_candidates"],
+                    "reasoning": response_data["reasoning"],
+                }
+            ),
+            200,
+        )
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
     except requests.exceptions.ConnectionError:
@@ -512,6 +516,7 @@ def chat_assist():
             jsonify({"error": "An unexpected error occurred. Please try again later."}),
             500,
         )
+
 
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - split out to functions
