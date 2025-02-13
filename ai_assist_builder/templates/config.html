@@ -1,0 +1,90 @@
+{% extends "core.html" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+{% from "components/label/_macro.njk" import onsLabel %}
+{% from "components/radios/_macro.njk" import onsRadios %}
+
+
+{%
+    set pageConfig = {
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "header": {
+            "title": 'Configuration',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "breadcrumbs": {
+            "ariaLabel": 'Breadcrumbs',
+            "itemsList": [
+                {
+                    "url": url_for("summary"),
+                    "text": 'Previous'
+                }
+            ]
+        }
+    }
+%}
+
+{% block main %}
+{% if applied == false %}
+{{
+    onsPanel({
+        "body": 'Configuration is applied dynamically',
+    })
+}}
+{% else %}
+{{
+    onsPanel({
+        "body": 'Configuration applied',
+        "variant": 'success',
+        "id": 'success-id',
+        "iconType": 'check',
+    })
+}}
+{% endif %}
+<p></p>
+
+<form method="POST" action="{{ url_for('config') }}">
+{{
+    onsRadios({
+        "name": "api-version",
+        "legend": "Select API version",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "v1v2",
+                "label": {
+                    "text": "v1 and v2",
+                    "description": "2 questions, sic lookup plus 2 questions (Nov / Jan)"
+                },
+                "value": "v1v2",
+                "checked": selected_version == "classify"
+            },
+            {
+                "id": "v3",
+                "label": {
+                    "text": "v3",
+                    "description": "rephrased SIC descriptions, updated prompt, multiple interactions with LLM per classisfication (Feb)"
+                },
+                "value": "v3",
+                "checked": selected_version == "classify-v3"
+            }
+        ]
+    })
+}}
+<p></p>
+
+{{ onsButton({
+    "id": "save-values-button",
+    "text": "Apply",
+}) }}
+</form>
+{% endblock %}

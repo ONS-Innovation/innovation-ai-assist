@@ -28,6 +28,7 @@ from ai_assist_builder.utils.classification_utils import (
     save_classification_response,
     update_last_survey_response,
 )
+from ai_assist_builder.utils.debug_utils import print_session, print_session_size
 from ai_assist_builder.utils.jwt_utils import (
     check_and_refresh_token,
     current_utc_time,
@@ -52,12 +53,14 @@ from ai_assist_builder.utils.template_utils import (
     render_sic_lookup_unsuccessful,
 )
 
+SESSION_LIMIT = 10700
 DEBUG = True
 TOKEN_EXPIRY = 3600  # 1 hour
 REFRESH_THRESHOLD = 300  # 5 minutes
 API_TIMER_SEC = 15
 FOLLOW_UP_TYPE = "both"  # select or text or both
 SURVEY_NAME = "TLFS PoC"
+DEFAULT_ENDPOINT = "classify-v3"
 
 number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
@@ -285,6 +288,30 @@ def ons_mockup():
     return render_template("ons_mockup.html")
 
 
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    print("Request method:", request.method)
+    if request.method == "POST":
+        print(f"Selected: {request.form.get("api-version")}")
+        session["endpoint"] = (
+            "classify" if request.form.get("api-version") == "v1v2" else "classify-v3"
+        )
+        print(f"Classify endpoint: {session['endpoint']}")
+        applied = True
+    else:
+        applied = False
+
+    # Get the role of the user
+    role = session.get("role")
+    print(f"Role: {role}")
+    if role not in ["admin"]:
+        return redirect(url_for("error_page", error="Not authorised for config"))
+
+    return render_template(
+        "config.html", selected_version=session["endpoint"], applied=applied
+    )
+
+
 @app.route("/chat_service", methods=["GET"])
 def chat_service():
     return render_template("chat_service.html")
@@ -305,6 +332,7 @@ def check_login():
         session["user"] = email
         session["role"] = get_user_role(email)
         print(f"User {email.split("@")[0]} logged in with role {session['role']}")
+        session["endpoint"] = DEFAULT_ENDPOINT
         return redirect("/")
     else:
         return render_template(
@@ -347,6 +375,9 @@ def index():
 
     session.modified = True
 
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     return render_template("index.html")
 
 
@@ -365,6 +396,10 @@ def previous_question():
 # Generic route to handle survey questions
 @app.route("/survey", methods=["GET", "POST"])
 def survey():
+    print("/survey")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     # Initialize the current question index in the session if it doesn't exist
     if "current_question_index" not in session:
         session["current_question_index"] = 0
@@ -395,6 +430,10 @@ def survey():
 
 @app.route("/chat_lookup", methods=["POST"])
 def chat_lookup():  # noqa: PLR0911
+    print("/chat_lookup")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     chat_response = request.json
     org_description = chat_response.get("org_description")
 
@@ -446,13 +485,17 @@ def chat_lookup():  # noqa: PLR0911
 
 @app.route("/chat_assist", methods=["POST"])
 def chat_assist():  # noqa: PLR0911
+    print("/chat_assist")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     llm = "gemini"  # gemini or chat-gpt
     type = "sic"  # sic or soc or sic_soc
 
     # Find the question about job_title
     user_response = request.json
 
-    api_url = backend_api_url + "/survey-assist/classify"
+    api_url = backend_api_url + f"/survey-assist/{session["endpoint"]}"
     print("SENDING REQUEST API URL:", api_url)
 
     body = {
@@ -529,7 +572,7 @@ def survey_assist():  # noqa: C901, PLR0911
     # Find the question about job_title
     user_response = session.get("response")
 
-    api_url = backend_api_url + "/survey-assist/classify"
+    api_url = backend_api_url + f"/survey-assist/{session["endpoint"]}"
     print("SENDING REQUEST API URL:", api_url)
 
     body = {
@@ -628,6 +671,10 @@ def survey_assist():  # noqa: C901, PLR0911
         )
         session.modified = True
 
+        print("/survey_assist")
+        if print_session_size() > SESSION_LIMIT:
+            print_session()
+
         return render_template("question_template.html", **mapped_question.to_dict())
 
     except requests.exceptions.Timeout:
@@ -670,6 +717,10 @@ def survey_assist():  # noqa: C901, PLR0911
 # to the update_session_and_redirect function.
 @app.route("/save_response", methods=["POST"])
 def save_response():
+
+    print("/save_response (entry)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
 
     # Define a dictionary to store responses
     if "response" not in session:
@@ -735,6 +786,10 @@ def save_response():
         # update the response name, required by forward_redirect
         # TODO - can this be incorporated in the forward_redirect function?
         last_question["response"] = request.form.get(last_question["response_name"])
+
+    print("/save_response (exit)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
 
     if question in actions:
         return actions[question]()
@@ -810,6 +865,10 @@ def create_lookup_result(sic_lookup_response):
 # TODO - refactor
 @app.route("/survey_assist_results", methods=["GET", "POST"])
 def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
+
+    print("/survey_assist_results (entry)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
 
     # Get the survey data from the session
     user_survey = session.get("survey")
@@ -897,9 +956,33 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
         # TODO - this removes the first candidate, the copy is not needed
         # as it is not a deep copy and sa_response_presentation is not used
         sa_response_presentation = sa_response.copy()
-        sa_response_presentation["categorisation"]["codings"] = (
-            sa_response_presentation["categorisation"]["codings"][1:]
-        )
+
+        if session["endpoint"] != "classify-v3":
+            sa_response_presentation["categorisation"]["codings"] = (
+                sa_response_presentation["categorisation"]["codings"][1:]
+            )
+        else:
+            print("classify-v3 endpoint - retaining first candidate")
+
+        print("SA_RESPONSE - - - -", sa_response)
+
+        if (
+            sa_response.get("categorisation")
+            and sa_response["categorisation"].get("sic_code") is None
+        ):
+            # Take the first enrty from categorisation.codings.coding.code
+            sic_code = sa_response["categorisation"]["codings"][0]["code"]
+            sic_description = sa_response["categorisation"]["codings"][0][
+                "code_description"
+            ]
+            print("SIC Code:", sic_code)
+            print("SIC Description:", sic_description)
+            sa_response["categorisation"]["sic_code"] = sic_code
+            sa_response["categorisation"]["sic_description"] = sic_description
+            # Remove the first ecntry from codings
+            sa_response["categorisation"]["codings"] = sa_response["categorisation"][
+                "codings"
+            ][1:]
 
         # print("Filtered responses:", filtered_responses)
         html_output = render_classification_results(
@@ -922,7 +1005,12 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
         filtered_responses[2]["response"] = org_description_question[0]["response"]
 
         updated_classification = get_classification(
-            backend_api_url, jwt_token, "gemini", "sic", filtered_responses
+            backend_api_url,
+            session["endpoint"],
+            jwt_token,
+            "gemini",
+            "sic",
+            filtered_responses,
         )
 
         # Add the updated classification to the session data
@@ -932,10 +1020,13 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 
         updated_api_response = map_api_response_to_internal(updated_classification)
 
-        # Remove the first candidate from the classification
-        updated_api_response["categorisation"]["codings"] = updated_api_response[
-            "categorisation"
-        ]["codings"][1:]
+        if session["endpoint"] != "classify-v3":
+            # Remove the first candidate from the classification
+            updated_api_response["categorisation"]["codings"] = updated_api_response[
+                "categorisation"
+            ]["codings"][1:]
+        else:
+            print("classify-v3 endpoint - retaining first candidate (2)")
 
         # TODO - need to store updated_api_response and sa_response
         # in the session data so they can be saved to the API
@@ -975,7 +1066,7 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 # Route to make an API request (used for testing)
 # TODO - split into functions
 @app.route("/save_results", methods=["GET", "POST"])
-def save_results():  # noqa: PLR0911, PLR0915
+def save_results():  # noqa: PLR0911, PLR0915, C901
 
     survey_data = session.get("survey")
 
@@ -1111,6 +1202,10 @@ def save_results():  # noqa: PLR0911, PLR0915
         print(f"Updated response: {updated_response}")
         print(f"Updates response notes: {updated_response['notes']}")
 
+        print("/save_results (exit)")
+        if print_session_size() > SESSION_LIMIT:
+            print_session()
+
         return render_template("thank_you.html", survey=SURVEY_NAME)
 
     except requests.exceptions.Timeout:
@@ -1145,7 +1240,10 @@ def save_results():  # noqa: PLR0911, PLR0915
 # dictionary. The data is then displayed in a summary template
 @app.route("/summary")
 def summary():
-    print_session()
+    print("/summary")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     survey_data = session.get("survey")
     survey_questions = survey_data["survey"]["questions"]
 
@@ -1325,13 +1423,6 @@ def validate_user(email, password):
     return False
 
 
-def print_session():
-    if DEBUG:
-        print("Session data:", session)
-        print("Response data:", session.get("response"))
-        print("Survey data:", session.get("survey"))
-
-
 def print_api_response(random_id, character_name):
     if DEBUG:
         print("Random ID:", random_id)
@@ -1355,6 +1446,9 @@ def consent_skip():
 
 # TODO - move to a separate file
 def consent_redirect():
+    print("/consent_redirect (entry)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
     user_survey = session.get("survey")
 
     # Get the form value for survey_assist_consent
@@ -1377,6 +1471,9 @@ def consent_redirect():
 
     session.modified = True
 
+    print("/consent_redirect (exit)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
     if consent_response == "yes":
         # print("User consented to AI Assist")
         return redirect(url_for("survey_assist"))
@@ -1394,6 +1491,9 @@ def consent_redirect():
 # TODO - This is currently only checking the first interaction, need to search
 # for the current question in the interactions list.
 def followup_redirect():
+    print("followup_redirect (entry)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
     current_question = questions[session["current_question_index"]]
     # print("followup current_question:", current_question.get("question_id"))
 
@@ -1477,6 +1577,10 @@ def followup_redirect():
                 )
                 session.modified = True
 
+                print("followup_redirect (exit A)")
+                if print_session_size() > SESSION_LIMIT:
+                    print_session()
+
                 return render_template(
                     "question_template.html", **mapped_question.to_dict()
                 )
@@ -1488,6 +1592,11 @@ def followup_redirect():
         # get the next question
         session["current_question_index"] += 1
         session.modified = True
+
+        print("followup_redirect (exit B)")
+        if print_session_size() > SESSION_LIMIT:
+            print_session()
+
         return redirect(url_for("survey"))
 
 
@@ -1539,7 +1648,12 @@ def sic_lookup(request, value):  # noqa: PLR0911
 # Handles the redirect after a question has been answered.
 # For interactions this will be to the survey_assist route
 # For regular questions this will be to the survey route
-def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
+def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C901
+
+    print("update_session_and_redirect (entry)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     session["response"][key] = request.form.get(value)
 
     print("Update session and redirect session survey data:", session.get("survey"))
@@ -1657,7 +1771,9 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
                                 {
                                     "code": division.get("code"),
                                     "title": division.get("meta", {}).get("title"),
-                                    "detail": division.get("meta", {}).get("detail"),
+                                    "detail": "",
+                                    # Session size exhausts if detail is included
+                                    #  "detail": division.get("meta", {}).get("detail"),
                                 }
                                 for division in potential_divisions
                             ],
@@ -1671,6 +1787,10 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
                 # ask consent
                 consent = True
 
+            print("update_session_and_redirect (exit A)")
+            if print_session_size() > SESSION_LIMIT:
+                print_session()
+
             if consent:
                 # print("AI Assist interaction detected - REDIRECTING to consent")
                 return redirect(url_for("survey_assist_consent"))
@@ -1681,4 +1801,9 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, C901
 
     session["current_question_index"] += 1
     session.modified = True
+
+    print("update_session_and_redirect (exit B)")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
     return redirect(url_for(route))

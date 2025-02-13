@@ -24,6 +24,7 @@ black = "^24.10.0"
 ruff = "^0.7.3"
 flake8 = "^7.1.1"
 isort = "^5.13.2"
+debugpy = "^1.8.12"
 
 [tool.isort]
 profile = "black"

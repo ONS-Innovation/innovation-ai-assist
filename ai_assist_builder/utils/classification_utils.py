@@ -56,11 +56,14 @@ def filter_classification_responses(survey_data, classified_questions):
     return filtered_responses
 
 
-def get_classification(backend_api_url, jwt_token, llm, type, input_data):
+def get_classification(  # noqa: PLR0913
+    backend_api_url, endpoint, jwt_token, llm, type, input_data
+):
     """Send a request to the Survey Assist API to classify the input data.
 
     Args:
         backend_api_url (str): The URL of the Survey Assist API.
+        endpoint (str): The endpoint to send the request to.
         jwt_token (str): The JWT token for authentication.
         llm (str): The LLM code for the classification.
         type (str): The type of classification (e.g., "sic").
@@ -69,7 +72,7 @@ def get_classification(backend_api_url, jwt_token, llm, type, input_data):
     Returns:
         response_data (dict): The response data from the API.
     """
-    api_url = backend_api_url + "/survey-assist/classify"
+    api_url = backend_api_url + f"/survey-assist/{endpoint}"
     print("SENDING REQUEST API URL:", api_url)
     body = {
         "llm": llm,
