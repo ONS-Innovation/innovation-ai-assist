@@ -358,7 +358,7 @@ def config():  # noqa: PLR0911
 
         # Get the role of the user
         role = session.get("role")
-        if role not in ["cash"]:
+        if role not in ["admin"]:
             logger.error(
                 f"User {mask_username(session['user'])} not authorised for config"
             )
