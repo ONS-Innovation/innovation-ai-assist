@@ -28,12 +28,20 @@ from ai_assist_builder.utils.classification_utils import (
     save_classification_response,
     update_last_survey_response,
 )
-from ai_assist_builder.utils.debug_utils import print_session, print_session_size
+from ai_assist_builder.utils.debug_utils import (
+    log_api_rcv,
+    log_api_send,
+    log_session,
+    mask_username,
+    print_session,
+    print_session_size,
+)
 from ai_assist_builder.utils.jwt_utils import (
     check_and_refresh_token,
     current_utc_time,
     generate_jwt,
 )
+from ai_assist_builder.utils.log_utils import log_entry, setup_logging
 from ai_assist_builder.utils.results_utils import (
     calculate_average_excluding_max,
     count_sic_changes,
@@ -57,10 +65,13 @@ SESSION_LIMIT = 10700
 DEBUG = True
 TOKEN_EXPIRY = 3600  # 1 hour
 REFRESH_THRESHOLD = 300  # 5 minutes
-API_TIMER_SEC = 15
-FOLLOW_UP_TYPE = "both"  # select or text or both
+API_TIMER_SEC = 30
+FOLLOW_UP_TYPE = "both"  # closed or open or both
 SURVEY_NAME = "TLFS PoC"
 DEFAULT_ENDPOINT = "classify-v3"
+
+# Setup logging
+logger = setup_logging("flask")
 
 number_to_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
@@ -125,6 +136,9 @@ def before_request():
     token_start_time, jwt_token = check_and_refresh_token(
         token_start_time, jwt_token, jwt_secret_path, api_gateway, sa_email
     )
+
+    # Log the request method and route
+    logger.debug(f"Rx Method: {request.method} - Route: {request.endpoint}")
 
 
 @app.route("/save_as_csv", methods=["GET", "POST"])
@@ -289,27 +303,106 @@ def ons_mockup():
 
 
 @app.route("/config", methods=["GET", "POST"])
-def config():
-    print("Request method:", request.method)
+def config():  # noqa: PLR0911
     if request.method == "POST":
         print(f"Selected: {request.form.get("api-version")}")
         session["endpoint"] = (
             "classify" if request.form.get("api-version") == "v1v2" else "classify-v3"
         )
         print(f"Classify endpoint: {session['endpoint']}")
+        session["follow_up_type"] = request.form.get("follow-up-question")
+        print(f"Follow-up question on post: {session['follow_up_type']}")
+        # Reset the consent question text
+        # Ideally we would read this from the json again
+        ai_assist["consent"][
+            "question_text"
+        ] = "Can Survey Assist ask PLACEHOLDER_FOLLOWUP to better understand PLACEHOLDER_REASON?"
+        session.modified = True
         applied = True
     else:
         applied = False
 
-    # Get the role of the user
-    role = session.get("role")
-    print(f"Role: {role}")
-    if role not in ["admin"]:
-        return redirect(url_for("error_page", error="Not authorised for config"))
+    # Get the config from the backend
+    api_url = backend_api_url + "/survey-assist/config"
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    log_api_send(logger, api_url, None)
+    try:
+        response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
+        response_data = response.json()
 
-    return render_template(
-        "config.html", selected_version=session["endpoint"], applied=applied
-    )
+        log_api_rcv(logger, api_url, response_data)
+
+        # Get v1/v2 prompt
+        v1v2prompt = "<strong>RAG</strong><p></p>" + response_data["v1v2"][
+            "classification"
+        ][0]["prompts"][0]["text"].replace("\n", "<br>")
+        v3prompt = (
+            "<strong>Reranker</strong><p></p>"
+            + response_data["v3"]["classification"][0]["prompts"][0]["text"].replace(
+                "\n", "<br>"
+            )
+            + "<strong>Unambiguous</strong><p></p>"
+            + response_data["v3"]["classification"][0]["prompts"][1]["text"].replace(
+                "\n", "<br>"
+            )
+        )
+
+        config = {
+            "selected_version": session["endpoint"],
+            "follow_up_type": session["follow_up_type"],
+            "applied": applied,
+            "model": response_data.get("llm_model"),
+            "v1v2prompt": v1v2prompt,
+            "v3prompt": v3prompt,
+        }
+
+        # Get the role of the user
+        role = session.get("role")
+        if role not in ["cash"]:
+            logger.error(
+                f"User {mask_username(session['user'])} not authorised for config"
+            )
+            return redirect(url_for("error_page", error="Not authorised for config"))
+
+        logger.info(
+            f"Config settings - selected_version: {config['selected_version']} follow_up_type: {config['follow_up_type']} model: {config['model']} applied: {config['applied']}"
+        )
+
+        return render_template(
+            "config.html",
+            config=config,
+        )
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request timed out. Please try again later."}), 504
+    except requests.exceptions.ConnectionError:
+        return (
+            jsonify(
+                {"error": "Failed to connect to the API. Please check your connection."}
+            ),
+            502,
+        )
+    except requests.exceptions.HTTPError as http_err:
+        return (
+            jsonify({"error": f"HTTP error occurred: {http_err.response.status_code}"}),
+            500,
+        )
+    except ValueError:
+        # For JSON decoding errors
+        return jsonify({"error": "Failed to parse the response from the API."}), 500
+    except KeyError as key_err:
+        # This can be invalid JWT, check GCP logs
+        return (
+            jsonify(
+                {"error": f"Missing expected data: {str(key_err)}"}  # noqa: RUF010
+            ),
+            500,
+        )
+    except Exception as e:
+        return (
+            jsonify({"error": e}),
+            500,
+        )
 
 
 @app.route("/chat_service", methods=["GET"])
@@ -333,6 +426,8 @@ def check_login():
         session["role"] = get_user_role(email)
         print(f"User {email.split("@")[0]} logged in with role {session['role']}")
         session["endpoint"] = DEFAULT_ENDPOINT
+        session["follow_up_type"] = FOLLOW_UP_TYPE
+        session.modified = True
         return redirect("/")
     else:
         return render_template(
@@ -342,6 +437,9 @@ def check_login():
 
 @app.route("/")
 def index():
+    if "follow_up_type" not in session:
+        session["follow_up_type"] = FOLLOW_UP_TYPE
+
     if "user" not in session:
         return redirect("/login")
     # When the user navigates to the home page, reset the session data
@@ -369,6 +467,10 @@ def index():
 
     if "sa_response" in session:
         session["sa_response"] = []
+
+    # Clear the follow-up questions in the session
+    if "follow_up" in session:
+        session.pop("follow_up")
 
     if "sic_lookup" in session:
         session.pop("sic_lookup")
@@ -442,14 +544,12 @@ def chat_lookup():  # noqa: PLR0911
         + f"/survey-assist/sic-lookup?description={org_description}&similarity=true"
     )
     headers = {"Authorization": f"Bearer {jwt_token}"}
+    log_api_send(logger, api_url, None)
     try:
         response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
         response_data = response.json()
 
-        print("LOOKUP RESPONSE DATA:", response_data)
-
-        if response_data.get("code"):
-            print("SIC Code found:", response_data.get("code"))
+        log_api_rcv(logger, api_url, response_data)
         return response_data
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -496,7 +596,6 @@ def chat_assist():  # noqa: PLR0911
     user_response = request.json
 
     api_url = backend_api_url + f"/survey-assist/{session["endpoint"]}"
-    print("SENDING REQUEST API URL:", api_url)
 
     body = {
         "llm": llm,
@@ -507,6 +606,7 @@ def chat_assist():  # noqa: PLR0911
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
+    log_api_send(logger, api_url, body)
     try:
         # Send a request to the Survey Assist API
         response = requests.post(
@@ -514,7 +614,7 @@ def chat_assist():  # noqa: PLR0911
         )
         response.raise_for_status()  # Raise an error for HTTP codes 4xx/5xx
         response_data = response.json()
-        print("RESPONSE DATA:", response_data)
+        log_api_rcv(logger, api_url, response_data)
 
         # Return the result back to the chatbot
         return (
@@ -573,7 +673,6 @@ def survey_assist():  # noqa: C901, PLR0911
     user_response = session.get("response")
 
     api_url = backend_api_url + f"/survey-assist/{session["endpoint"]}"
-    print("SENDING REQUEST API URL:", api_url)
 
     body = {
         "llm": llm,
@@ -583,6 +682,7 @@ def survey_assist():  # noqa: C901, PLR0911
         "org_description": user_response.get("organisation_activity"),
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
+    log_api_send(logger, api_url, body)
 
     try:
         # Send a request to the Survey Assist API
@@ -590,6 +690,7 @@ def survey_assist():  # noqa: C901, PLR0911
             api_url, json=body, headers=headers, timeout=API_TIMER_SEC
         )
         response_data = response.json()
+        log_api_rcv(logger, api_url, response_data)
 
         api_response = map_api_response_to_internal(response_data)
 
@@ -611,11 +712,11 @@ def survey_assist():  # noqa: C901, PLR0911
             session["follow_up"].extend(followup_questions)
             session.modified = True
 
-        if FOLLOW_UP_TYPE in ["text", "both"]:
+        if session["follow_up_type"] in ["open", "both"]:
             followup = session.get("follow_up", {})
             question_data = followup.pop(0)
             question_text = question_data.get("question_text", "")
-        elif FOLLOW_UP_TYPE == "select":
+        elif session["follow_up_type"] == "closed":
             followup = session.get("follow_up", {})
             question_data = followup.pop(-1)
             question_text = question_data.get("question_text", "")
@@ -798,6 +899,7 @@ def save_response():
 
 
 # Used to save the sic lookup result to the backed
+@log_entry(logger)
 def format_lookup_response(sic_lookup_response):
 
     lookup_result = {
@@ -832,6 +934,7 @@ def format_lookup_response(sic_lookup_response):
 
 
 # Used to display the SIC lookup results on the UI
+@log_entry(logger)
 def create_lookup_result(sic_lookup_response):
 
     # If sic found
@@ -1004,6 +1107,8 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 
         filtered_responses[2]["response"] = org_description_question[0]["response"]
 
+        # Get the updated classification using the answers
+        # to the follow up questions from the first interaction with Survey Assist
         updated_classification = get_classification(
             backend_api_url,
             session["endpoint"],
@@ -1011,6 +1116,7 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
             "gemini",
             "sic",
             filtered_responses,
+            logger,
         )
 
         # Add the updated classification to the session data
@@ -1026,7 +1132,22 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
                 "categorisation"
             ]["codings"][1:]
         else:
-            print("classify-v3 endpoint - retaining first candidate (2)")
+            logger.info("classify-v3 endpoint - retaining first candidate")
+            # if codeable is False, set sic_code and description from the first candidate
+            if not updated_api_response["categorisation"]["codeable"]:
+                # Take the entry from categorisation.codings that has the highest confidence
+                # first element has highest confidence
+                sic_code = updated_api_response["categorisation"]["codings"][0]["code"]
+                sic_description = updated_api_response["categorisation"]["codings"][0][
+                    "code_description"
+                ]
+                logger.info(
+                    f"Setting SIC code to {sic_code} and description to {sic_description}"
+                )
+                updated_api_response["categorisation"]["sic_code"] = sic_code
+                updated_api_response["categorisation"][
+                    "sic_description"
+                ] = sic_description
 
         # TODO - need to store updated_api_response and sa_response
         # in the session data so they can be saved to the API
@@ -1127,7 +1248,6 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
     print("==========================")
 
     api_url = backend_api_url + "/survey-assist/response"
-    print("SENDING REQUEST API URL:", api_url)
 
     body = {
         "user_id": user,
@@ -1155,12 +1275,15 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
     }
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    log_api_send(logger, api_url, body)
     # make an api request
     try:
         # Send a request to the Survey Assist API
         response = requests.post(
             api_url, json=body, headers=headers, timeout=API_TIMER_SEC
         )
+        log_api_rcv(logger, api_url, response.json())
 
         if response.status_code != HTTPStatus.OK or not response.json():
             return redirect(url_for("error_page"))
@@ -1296,7 +1419,7 @@ def survey_assist_consent():
         # Get the maximum followup
         max_followup = ai_assist["consent"]["max_followup"]
 
-        if max_followup == 1:
+        if session["follow_up_type"] != "both":
             followup_text = "one additional question"
         else:
             # convert numeric to string
@@ -1423,12 +1546,7 @@ def validate_user(email, password):
     return False
 
 
-def print_api_response(random_id, character_name):
-    if DEBUG:
-        print("Random ID:", random_id)
-        print("Character name:", character_name)
-
-
+@log_entry(logger)
 def consent_skip():
     user_survey = session.get("survey")
     user_survey.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
@@ -1445,10 +1563,12 @@ def consent_skip():
 
 
 # TODO - move to a separate file
+@log_entry(logger)
 def consent_redirect():
     print("/consent_redirect (entry)")
     if print_session_size() > SESSION_LIMIT:
         print_session()
+    log_session(logger)
     user_survey = session.get("survey")
 
     # Get the form value for survey_assist_consent
@@ -1490,10 +1610,13 @@ def consent_redirect():
 
 # TODO - This is currently only checking the first interaction, need to search
 # for the current question in the interactions list.
+@log_entry(logger)
 def followup_redirect():
     print("followup_redirect (entry)")
     if print_session_size() > SESSION_LIMIT:
         print_session()
+
+    log_session(logger)
     current_question = questions[session["current_question_index"]]
     # print("followup current_question:", current_question.get("question_id"))
 
@@ -1518,7 +1641,7 @@ def followup_redirect():
         )
 
         # Check if the session has follow-up questions
-        if "follow_up" in session and FOLLOW_UP_TYPE == "both":
+        if "follow_up" in session and session["follow_up_type"] == "both":
             follow_up = session["follow_up"]
             if len(follow_up) > 0:
                 # Get the next follow-up question
@@ -1600,6 +1723,7 @@ def followup_redirect():
         return redirect(url_for("survey"))
 
 
+@log_entry(logger)
 def sic_lookup(request, value):  # noqa: PLR0911
     # Send Get Request to the API
     api_url = (
@@ -1607,11 +1731,11 @@ def sic_lookup(request, value):  # noqa: PLR0911
         + f"/survey-assist/sic-lookup?description={request.form.get(value)}&similarity=true"
     )
     headers = {"Authorization": f"Bearer {jwt_token}"}
+    log_api_send(logger, api_url, None)
     try:
         response = requests.get(api_url, headers=headers, timeout=API_TIMER_SEC)
         response_data = response.json()
-        if response_data.get("code"):
-            print("SIC Code found:", response_data.get("code"))
+        log_api_rcv(logger, api_url, response_data)
         return response_data
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -1648,11 +1772,13 @@ def sic_lookup(request, value):  # noqa: PLR0911
 # Handles the redirect after a question has been answered.
 # For interactions this will be to the survey_assist route
 # For regular questions this will be to the survey route
+@log_entry(logger)
 def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C901
 
     print("update_session_and_redirect (entry)")
     if print_session_size() > SESSION_LIMIT:
         print_session()
+    log_session(logger)
 
     session["response"][key] = request.form.get(value)
 

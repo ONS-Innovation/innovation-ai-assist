@@ -5,6 +5,8 @@ import requests
 from flask import jsonify
 from google.cloud import storage
 
+from ai_assist_builder.utils.debug_utils import log_api_rcv, log_api_send
+
 # TODO - move this to central config
 API_TIMER_SEC = 15
 
@@ -57,7 +59,7 @@ def filter_classification_responses(survey_data, classified_questions):
 
 
 def get_classification(  # noqa: PLR0913
-    backend_api_url, endpoint, jwt_token, llm, type, input_data
+    backend_api_url, endpoint, jwt_token, llm, type, input_data, logger
 ):
     """Send a request to the Survey Assist API to classify the input data.
 
@@ -68,6 +70,7 @@ def get_classification(  # noqa: PLR0913
         llm (str): The LLM code for the classification.
         type (str): The type of classification (e.g., "sic").
         input_data (list): A list of dictionaries containing the input data.
+        logger (Logger): The logger object for logging.
 
     Returns:
         response_data (dict): The response data from the API.
@@ -83,6 +86,7 @@ def get_classification(  # noqa: PLR0913
     }
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
+    log_api_send(logger, api_url, body)
 
     try:
         # Send a request to the Survey Assist API
@@ -91,6 +95,7 @@ def get_classification(  # noqa: PLR0913
         )
         response_data = response.json()
 
+        log_api_rcv(logger, api_url, response_data)
         return response_data
 
     except requests.exceptions.Timeout:

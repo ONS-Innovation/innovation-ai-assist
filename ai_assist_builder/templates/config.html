@@ -3,6 +3,8 @@
 {% from "components/panel/_macro.njk" import onsPanel %}
 {% from "components/label/_macro.njk" import onsLabel %}
 {% from "components/radios/_macro.njk" import onsRadios %}
+{% from "components/details/_macro.njk" import onsDetails %}
+
 
 
 {%
@@ -34,7 +36,31 @@
 %}
 
 {% block main %}
-{% if applied == false %}
+<h2>Back-end Configuration</h2>
+{{
+    onsPanel({
+        "body": "LLM Model - <strong>" + config.model +"</strong>" 
+    })
+}}
+<p></p>
+{{
+    onsDetails({
+        "id": "v1v2-details",
+        "title": "v1 and v2 details",
+        "content": "<p>Prompt:</p>"+ config.v1v2prompt
+    })
+}}
+<p></p>
+{{
+    onsDetails({
+        "id": "v3-details",
+        "title": "v3 details",
+        "content": "<p>Prompt:</p>"+ config.v3prompt
+    })
+}}
+<br>
+<h2>Update PoC Configuration</h2>
+{% if config.applied == false %}
 {{
     onsPanel({
         "body": 'Configuration is applied dynamically',
@@ -51,7 +77,6 @@
 }}
 {% endif %}
 <p></p>
-
 <form method="POST" action="{{ url_for('config') }}">
 {{
     onsRadios({
@@ -66,7 +91,7 @@
                     "description": "2 questions, sic lookup plus 2 questions (Nov / Jan)"
                 },
                 "value": "v1v2",
-                "checked": selected_version == "classify"
+                "checked": config.selected_version == "classify"
             },
             {
                 "id": "v3",
@@ -75,11 +100,50 @@
                     "description": "rephrased SIC descriptions, updated prompt, multiple interactions with LLM per classisfication (Feb)"
                 },
                 "value": "v3",
-                "checked": selected_version == "classify-v3"
+                "checked": config.selected_version == "classify-v3"
             }
         ]
     })
 }}
+
+{{
+    onsRadios({
+        "name": "follow-up-question",
+        "legend": "Select the type of follow-up question",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "open",
+                "label": {
+                    "text": "open",
+                    "description": "A text based open question formulated by AI"
+                },
+                "value": "open",
+                "checked": config.follow_up_type == "open"
+            },
+            {
+                "id": "closed",
+                "label": {
+                    "text": "closed",
+                    "description": "A multiple choice question derived from the candidates AI considered"
+                },
+                "value": "closed",
+                "checked": config.follow_up_type == "closed"
+            },
+            {
+                "id": "both",
+                "label": {
+                    "text": "both open and closed",
+                    "description": "Two questions, one open and one closed"
+                },
+                "value": "both",
+                "checked": config.follow_up_type == "both"
+            }
+            
+        ]
+    })
+}}
+
 <p></p>
 
 {{ onsButton({
