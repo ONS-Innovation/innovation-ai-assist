@@ -15,6 +15,7 @@ import datetime
 import functools
 import inspect
 import logging
+import sys
 from pathlib import Path
 from typing import Optional, Union
 
@@ -50,10 +51,12 @@ def setup_logging(
     other_logger = logging.getLogger(EXTRA_MODULE_NAME)
     other_logger.setLevel(logging.DEBUG)
 
-    log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    # Used when writing to local logging file
+    # log_dir = Path(log_dir)
+    # log_dir.mkdir(parents=True, exist_ok=True)
 
-    ch = logging.StreamHandler()
+    # Remove sys.stdout if logging locally
+    ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(LOG_LEVEL)
 
     formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
@@ -64,22 +67,23 @@ def setup_logging(
         logger.addHandler(ch)
         other_logger.addHandler(ch)
 
-    try:
-        if script_name is None:
-            log_file = log_dir / f"{MODULE_NAME}.{DATE_STRING}.log"
-        else:
-            log_file = log_dir / f"{MODULE_NAME}_{script_name}.{DATE_STRING}.log"
+    # Used when writing to local logging file
+    # try:
+    #     if script_name is None:
+    #         log_file = log_dir / f"{MODULE_NAME}.{DATE_STRING}.log"
+    #     else:
+    #         log_file = log_dir / f"{MODULE_NAME}_{script_name}.{DATE_STRING}.log"
 
-        if len(logger.handlers) == 1:
-            fh = logging.FileHandler(log_file)
+    #     if len(logger.handlers) == 1:
+    #         fh = logging.FileHandler(log_file)
 
-            fh.setFormatter(formatter)
-            fh.setLevel(LOG_LEVEL)
-            logger.addHandler(fh)
-            other_logger.addHandler(fh)
+    #         fh.setFormatter(formatter)
+    #         fh.setLevel(LOG_LEVEL)
+    #         logger.addHandler(fh)
+    #         other_logger.addHandler(fh)
 
-    except FileNotFoundError:
-        logger.warning("Console logging only")
+    # except FileNotFoundError:
+    #     logger.warning("Console logging only")
 
     return logger
 
