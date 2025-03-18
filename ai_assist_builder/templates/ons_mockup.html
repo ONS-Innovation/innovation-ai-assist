@@ -1,0 +1,225 @@
+{% extends "layout/_template.njk" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+
+{%  
+    set pageConfig = {
+        "header": {
+            "title": 'TLFS Survey Assist Prototype',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "footer": {
+            "OGLLink": true,
+            "legal": [
+            ],
+              },
+    }
+%}
+{% block head %}
+<style>
+    * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+}
+
+.header {
+  background-color: #003c71;
+  color: white;
+  padding: 1rem 2rem;
+}
+
+.header .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav {
+  margin-top: 1rem;
+}
+
+.nav a {
+  color: white;
+  margin-right: 1rem;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.search-bar {
+  background-color: #e8e8e8;
+  padding: 1rem;
+  text-align: center;
+}
+
+.search-bar input {
+  padding: 0.5rem;
+  width: 50%;
+  margin-right: 0.5rem;
+}
+
+.search-bar button {
+  padding: 0.5rem 1rem;
+  background-color: #003c71;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #005ea5;
+}
+
+.main-content {
+  padding: 2rem;
+}
+
+.main-content h1 {
+  font-size: 2rem;
+  color: #5b2c89;
+}
+
+.main-content p {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.card {
+  background-color: white;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.card strong {
+  font-size: 1.5rem;
+  color: #003c71;
+}
+
+.card p {
+  margin: 0.5rem 0;
+}
+
+.card a.btn {
+    display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #5b2c89;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.card a.btn:hover {
+  background-color: #4a2070;
+}
+
+/* Column spans */
+.span-6 {
+  grid-column: span 6;
+}
+
+.span-3 {
+  grid-column: span 3;
+}
+
+
+</style>
+{% endblock %}
+{% block main %}  
+{{
+    onsPanel({
+        "id": 'success-id',
+        "body": 'Contact <strong>steve.gibbard@ons.gov.uk</strong> for access to this page',
+        "spacious": false
+    })
+}}  
+<header class="header">
+    <div class="logo">Office for National Statistics</div>
+    <nav class="nav">
+      <a href="#">Home</a>
+      <a href="#">Business, Industry and Trade</a>
+      <a href="#">Economy</a>
+      <a href="#">Employment and Labour Market</a>
+      <a href="#">People, Population and Community</a>
+      <a href="#">Taking part in a survey?</a>
+    </nav>
+  </header>
+  
+  <section class="search-bar">
+    <input type="text" placeholder="Search for a keyword(s) or time series ID">
+    <button>Search</button>
+  </section>
+  
+  <section class="main-content">
+    <h1>Census 2021</h1>
+    <p>Data and analysis from Census 2021</p>
+    
+    <div class="grid">
+      <!-- First row -->
+      <div class="card span-6">
+        <h2>Employment</h2>
+        <p>Employment rate</p>
+        <strong>74.8%</strong>
+        <p>Unemployment rate</p>
+        <strong>4.4%</strong>
+      </div>
+      
+      <div class="card span-3">
+        <h2>Inflation</h2>
+        <p>CPIH 12-month rate</p>
+        <strong>3.5%</strong>
+      </div>
+      
+      <div class="card span-3">
+        <h2>GDP</h2>
+        <p>Quarter on Quarter</p>
+        <strong>0.0%</strong>
+      </div>
+      
+      <!-- Second row -->
+      <div class="card span-6">
+        <h2>UK Population</h2>
+        <p>Mid-year estimate (2023)</p>
+        <strong>68,265,200</strong>
+      </div>
+      
+      <div class="card span-6">
+        <h2>Have 5 Minutes to Spare?</h2>
+        <p>Help ONS try a new service to better understand employment</p>
+        <a href="{{url_for('chat_service')}}" class="btn">Test a new ONS service</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

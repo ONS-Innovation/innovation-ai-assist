@@ -4,7 +4,8 @@ def map_api_response_to_internal(api_response: dict) -> list:
         api_response: dict, id: str, response_type: str, select_options: list
     ) -> dict:
         if response_type == "confirm":
-            question_text = "Does this describe your organisation's activities?"
+            question_text = f"Does '{select_options[0]}' describe your organisation?"
+            select_options[0] = "Yes"
             response_type = "select"
         else:
             question_text = (
@@ -65,10 +66,10 @@ def map_api_response_to_internal(api_response: dict) -> list:
                 )
             )
     else:
-        # The original sic_soc_llm code would return true
-        # if the classification was successful, however classification
-        # was often over confident. TODO - determine if we still
-        # need this check after testing
+        # V3 classify can return classified == True when it
+        # is confident a sic mapping has been found
+        # In this case, we want to confirm the mapping by asking the user
+        # if they agree with organisation classification description
         follow_up = internal_representation["follow_up"]
         print("MAP Followup:", api_response.get("sic_description"))
         follow_up["questions"].append(
