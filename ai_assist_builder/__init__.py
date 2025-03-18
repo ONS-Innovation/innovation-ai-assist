@@ -68,7 +68,7 @@ REFRESH_THRESHOLD = 300  # 5 minutes
 API_TIMER_SEC = 30
 FOLLOW_UP_TYPE = "both"  # closed or open or both
 SURVEY_NAME = "TLFS PoC"
-DEFAULT_ENDPOINT = "classify-v3"
+DEFAULT_ENDPOINT = "classify"  # classify (one prompt) or classify-v3 (two prompts: reranker and unabmiguous)
 
 # Setup logging
 logger = setup_logging(script_name="flask", log_dir="/tmp/logs")  # noqa: S108
