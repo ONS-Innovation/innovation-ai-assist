@@ -270,11 +270,6 @@ def get_result():
 
 
 # Only allowed for admin and tester roles
-@app.route("/test_radio", methods=["GET", "POST"])
-def test_radio():
-    return render_template("test_radio.html")
-
-# Only allowed for admin and tester roles
 @app.route("/testing_admin", methods=["GET", "POST"])
 def testing_admin():
     if request.method == "POST":
@@ -1155,9 +1150,9 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
                 ] = sic_description
 
                 # Remove the first entry from codings
-                updated_api_response["categorisation"]["codings"] = updated_api_response[
-                    "categorisation"
-                ]["codings"][1:]
+                updated_api_response["categorisation"]["codings"] = (
+                    updated_api_response["categorisation"]["codings"][1:]
+                )
 
         # TODO - need to store updated_api_response and sa_response
         # in the session data so they can be saved to the API
