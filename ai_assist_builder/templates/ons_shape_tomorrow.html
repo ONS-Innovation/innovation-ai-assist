@@ -154,17 +154,50 @@ body {
   grid-column: span 3;
 }
 
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
 
+.sidebar {
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar ol {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.sidebar li {
+  margin-bottom: 0.5rem;
+}
+
+.sidebar a {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  text-decoration: underline;
+}
+
+section h2 {
+  padding-top: 1rem;
+}
 </style>
+
 {% endblock %}
 {% block main %}  
-{{
-    onsPanel({
-        "id": 'success-id',
-        "body": 'Contact <strong>steve.gibbard@ons.gov.uk</strong> for access to this page',
-        "spacious": false
-    })
-}}  
+
 <header class="header">
     <div class="logo">Office for National Statistics</div>
     <nav class="nav">
@@ -182,44 +215,73 @@ body {
     <button>Search</button>
   </section>
   
-  <section class="main-content">
-    <h1>Census 2021</h1>
-    <p>Data and analysis from Census 2021</p>
-    
-    <div class="grid">
-      <!-- First row -->
-      <div class="card span-6">
-        <h2>Employment</h2>
-        <p>Employment rate</p>
-        <strong>74.8%</strong>
-        <p>Unemployment rate</p>
-        <strong>4.4%</strong>
-      </div>
-      
-      <div class="card span-3">
-        <h2>Inflation</h2>
-        <p>CPIH 12-month rate</p>
-        <strong>3.5%</strong>
-      </div>
-      
-      <div class="card span-3">
-        <h2>GDP</h2>
-        <p>Quarter on Quarter</p>
-        <strong>0.0%</strong>
-      </div>
-      
-      <!-- Second row -->
-      <div class="card span-6">
-        <h2>UK Population</h2>
-        <p>Mid-year estimate (2023)</p>
-        <strong>68,265,200</strong>
-      </div>
-      
-      <div class="card span-6">
-        <h2>Have 5 Minutes to Spare?</h2>
-        <p>Help ONS try a new service to better understand employment</p>
-        <a href="{{url_for('chat_service')}}" class="btn">Test a new ONS service</a>
-      </div>
-    </div>
-  </section>
+  <div class="container">
+    <header>
+      <h1>Shape Tomorrow Study</h1>
+    </header>
+
+    <nav class="sidebar">
+      <h2>In this section</h2>
+      <ol>
+        <li><a href="#begin-study">Begin study</a></li>
+        <li><a href="#guidance">Guidance on completing the study</a></li>
+        <li><a href="#why-take-part">Why you should take part</a></li>
+        <li><a href="#data-protection">How we protect your data</a></li>
+        <li><a href="#contact">Contact us</a></li>
+      </ol>
+    </nav>
+    <hr>
+    <main class="content">
+      <section id="begin-study">
+        <div>
+        <h2>1. Begin study</h2>
+        <p>Thank you for taking part. The information you give us is protected by law and treated as confidential.</p>
+        <p>Find out more about <a href="#">how we protect your data</a>.</p>
+        <p>
+          Before starting, please check that the letter is addressed to your household. 
+          If you do not live at the address on the letter, do not start the survey. 
+          You will need to enter the household access code from your letter to begin.
+        </p>
+        </div>
+        {{ onsButton({
+              "id": "save-values-button",
+              "variants": 'loader',
+              "text": 'Start now',
+              "url": url_for("survey"),
+              }) 
+          }}
+      </section>
+      <hr>
+      <section id="guidance">
+        <h2>2. Guidance on completing the study</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus at luctus lorem. 
+          Integer at erat nec velit suscipit facilisis. In commodo finibus augue, 
+          vitae tempor mauris posuere et. Sed a dui a lorem convallis rhoncus a sit amet ligula.
+        </p>
+        <p>
+          Suspendisse nec ligula nec tortor tincidunt consectetur. 
+          Donec rutrum, nibh nec suscipit tristique, lorem risus porta justo, non lobortis purus risus non odio.
+        </p>
+      </section>
+
+      <!-- Future sections (placeholders for now) -->
+      <hr>
+      <section id="why-take-part">
+        <h2>3. Why you should take part</h2>
+        <p>Coming soon...</p>
+      </section>
+
+      <hr>
+      <section id="data-protection">
+        <h2>4. How we protect your data</h2>
+        <p>Coming soon...</p>
+      </section>
+
+      <hr>
+      <section id="contact">
+        <h2>5. Contact us</h2>
+        <p>Coming soon...</p>
+      </section>
+    </main>
+  </div>
 {% endblock %}

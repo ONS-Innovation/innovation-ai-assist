@@ -1,6 +1,7 @@
 {% extends "core.html" %}
 {%- set current_path = url_for("index") -%}
 {% from "components/hero/_macro.njk" import onsHero %}
+{% from "components/panel/_macro.njk" import onsPanel %}
 
 {% set containerClasses = "ons-container--full-width" %}
 {% block header %}
@@ -37,7 +38,8 @@
 
 {% block pageContent %}
 <main id="main-content">        
-    {% set hero_title = "TLFS Survey Assist" %}
+    {% set hero_title = "Shape Tomorrow Prototype" %}
+
     {% set hero_button = "Start survey" %}
 
     <div id="main-title">     
@@ -46,12 +48,14 @@
                 "title": hero_title,
                 "button": {
                     "id": 'find-methods-button', 
-                    "url": url_for("survey"),
+                    "url": url_for(url),
                     "text": hero_button
                 },
+                "text": 'Help us shape the future of AI Assistants by sharing your thoughts and experiences.',
                 wide:true
             })
         }}
+        
     </div>
 
 {% from "components/card/_macro.njk" import onsCard %}

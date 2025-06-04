@@ -302,6 +302,18 @@ def ons_mockup():
     return render_template("ons_mockup.html")
 
 
+@app.route("/ons_shape_tomorrow", methods=["GET"])
+def ons_shape_tomorrow():
+
+    # Get the role of the user
+    role = session.get("role")
+    print(f"Role: {role}")
+    if role not in ["admin", "tester"]:
+        return render_template("error_ons_mockup.html")
+
+    return render_template("ons_shape_tomorrow.html")
+
+
 @app.route("/config", methods=["GET", "POST"])
 def config():  # noqa: PLR0911
     if request.method == "POST":
@@ -312,6 +324,12 @@ def config():  # noqa: PLR0911
         print(f"Classify endpoint: {session['endpoint']}")
         session["follow_up_type"] = request.form.get("follow-up-question")
         print(f"Follow-up question on post: {session['follow_up_type']}")
+
+        session["test_harness"] = (
+            request.form.get("test-harness") == "yes"
+        )
+        print(f"Test harness routing: {session['test_harness']}")
+
         # Reset the consent question text
         # Ideally we would read this from the json again
         ai_assist["consent"][
@@ -349,6 +367,7 @@ def config():  # noqa: PLR0911
 
         config = {
             "selected_version": session["endpoint"],
+            "test_harness": "yes" if session["test_harness"] else "no",
             "follow_up_type": session["follow_up_type"],
             "applied": applied,
             "model": response_data.get("llm_model"),
@@ -365,7 +384,7 @@ def config():  # noqa: PLR0911
             return redirect(url_for("error_page", error="Not authorised for config"))
 
         logger.info(
-            f"Config settings - selected_version:{config['selected_version']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
+            f"Config settings - selected_version:{config['selected_version']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
         )
 
         return render_template(
@@ -427,6 +446,7 @@ def check_login():
         print(f"User {email.split("@")[0]} logged in with role {session['role']}")
         session["endpoint"] = DEFAULT_ENDPOINT
         session["follow_up_type"] = FOLLOW_UP_TYPE
+        session["test_harness"] = True
         session.modified = True
         return redirect("/")
     else:
@@ -439,6 +459,9 @@ def check_login():
 def index():
     if "follow_up_type" not in session:
         session["follow_up_type"] = FOLLOW_UP_TYPE
+
+    if "test_harness" not in session:
+        session["test_harness"] = True
 
     if "user" not in session:
         return redirect("/login")
@@ -480,7 +503,9 @@ def index():
     if print_session_size() > SESSION_LIMIT:
         print_session()
 
-    return render_template("index.html")
+    url = "survey" if session["test_harness"] else "ons_shape_tomorrow"
+
+    return render_template("index.html", url=url)
 
 
 # TODO - Breadcrumbs are not being rendered at the moment

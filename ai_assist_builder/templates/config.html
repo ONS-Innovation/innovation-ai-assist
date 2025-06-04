@@ -108,6 +108,34 @@
 
 {{
     onsRadios({
+        "name": "test-harness",
+        "legend": "Show internal test harness screens?",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "test-harness-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "SIC classification screens will be shown"
+                },
+                "value": "yes",
+                "checked": config.test_harness == "yes"
+            },
+            {
+                "id": "test-harness-no",
+                "label": {
+                    "text": "no",
+                    "description": "SIC classification screens will NOT be shown"
+                },
+                "value": "no",
+                "checked": config.test_harness == "no"
+            }
+        ]
+    })
+}}
+
+{{
+    onsRadios({
         "name": "follow-up-question",
         "legend": "Select the type of follow-up question",
         "borderless": true,
