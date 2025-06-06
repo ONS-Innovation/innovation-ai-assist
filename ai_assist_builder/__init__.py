@@ -317,18 +317,24 @@ def ons_shape_tomorrow():
 @app.route("/config", methods=["GET", "POST"])
 def config():  # noqa: PLR0911
     if request.method == "POST":
-        print(f"Selected: {request.form.get("api-version")}")
+        print(f"API Version config: {request.form.get("api-version")}")
         session["endpoint"] = (
             "classify" if request.form.get("api-version") == "v1v2" else "classify-v3"
         )
-        print(f"Classify endpoint: {session['endpoint']}")
+        print(f"Classify endpoint config: {session['endpoint']}")
         session["follow_up_type"] = request.form.get("follow-up-question")
-        print(f"Follow-up question on post: {session['follow_up_type']}")
+        print(f"Follow-up question type config: {session['follow_up_type']}")
 
         session["test_harness"] = (
             request.form.get("test-harness") == "yes"
         )
-        print(f"Test harness routing: {session['test_harness']}")
+        print(f"Test harness routing config: {session['test_harness']}")
+
+        session["show_consent"] = (
+            request.form.get("show-consent") == "yes"
+        )
+        print(f"Show consent config: {session['show_consent']}")
+
 
         # Reset the consent question text
         # Ideally we would read this from the json again
@@ -368,6 +374,7 @@ def config():  # noqa: PLR0911
         config = {
             "selected_version": session["endpoint"],
             "test_harness": "yes" if session["test_harness"] else "no",
+            "show_consent": "yes" if session["show_consent"] else "no",
             "follow_up_type": session["follow_up_type"],
             "applied": applied,
             "model": response_data.get("llm_model"),
@@ -384,7 +391,7 @@ def config():  # noqa: PLR0911
             return redirect(url_for("error_page", error="Not authorised for config"))
 
         logger.info(
-            f"Config settings - selected_version:{config['selected_version']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
+            f"Config settings - selected_version:{config['selected_version']} show_consent:{config['show_consent']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
         )
 
         return render_template(
@@ -447,6 +454,7 @@ def check_login():
         session["endpoint"] = DEFAULT_ENDPOINT
         session["follow_up_type"] = FOLLOW_UP_TYPE
         session["test_harness"] = True
+        session["show_consent"] = True
         session.modified = True
         return redirect("/")
     else:
@@ -462,6 +470,9 @@ def index():
 
     if "test_harness" not in session:
         session["test_harness"] = True
+
+    if "show_consent" not in session:
+        session["show_consent"] = True
 
     if "user" not in session:
         return redirect("/login")
@@ -1867,6 +1878,15 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
     # continue with the AI assist interaction
     if ai_assist.get("enabled", True):
         consent = False
+        show_consent = False
+
+        # Check if showing consent is required
+        #if ai_assist["consent"].get("required", False) and session["show_consent"]:
+        if session.get("show_consent", True):
+            print("!!!! Consent required for AI Assist interaction !!!!")
+            show_consent = True
+        else:
+            print("!!! Consent NOT required for AI Assist interaction !!!")
 
         session.modified = True
         interactions = ai_assist.get("interactions")
@@ -1948,8 +1968,19 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
                 print_session()
 
             if consent:
-                # print("AI Assist interaction detected - REDIRECTING to consent")
-                return redirect(url_for("survey_assist_consent"))
+                if show_consent:
+                    # print("AI Assist interaction detected - REDIRECTING to consent")
+                    return redirect(url_for("survey_assist_consent"))
+                else:
+                    # Get the survey data from the session
+                    user_survey = session.get("survey")
+
+                    # Mark the survey assist time start
+                    user_survey.get("survey")["survey_assist_time_start"] = datetime.now(timezone.utc)
+                    session.modified = True
+
+                    print("REDIRECTING to Survey Assist")
+                    return redirect(url_for("survey_assist"))
             else:
                 # SIC code found, skip Survey Assist consent
                 print("SIC code found, skipping Survey Assist consent")

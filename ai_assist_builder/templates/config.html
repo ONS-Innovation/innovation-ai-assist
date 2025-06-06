@@ -108,6 +108,35 @@
 
 {{
     onsRadios({
+        "name": "show-consent",
+        "legend": "Show AI consent screen?",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "show-consent-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "Consent screen will be shown prior to AI interaction"
+                },
+                "value": "yes",
+                "checked": config.show_consent == "yes"
+            },
+            {
+                "id": "show-consent-no",
+                "label": {
+                    "text": "no",
+                    "description": "Consent screen will NOT be shown"
+                },
+                "value": "no",
+                "checked": config.show_consent == "no"
+            }
+        ]
+    })
+}}
+
+
+{{
+    onsRadios({
         "name": "test-harness",
         "legend": "Show internal test harness screens?",
         "borderless": true,
