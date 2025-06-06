@@ -1213,15 +1213,22 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
             lookup_result = create_lookup_result(sic_lookup_res)
             sa_result.append(lookup_result)
 
-        return render_template("classification_template.html", sa_result=sa_result)
+        if session["test_harness"]:
+            return render_template("classification_template.html", sa_result=sa_result)
+        else:
+            # If not in test harness, redirect to the thank you page
+            return redirect(url_for("thank_you", survey="Shape Tomorrow Prototype"))
     else:
         if "sic_lookup" in session:
             sic_lookup_res = session.get("sic_lookup")
             lookup_result = create_lookup_result(sic_lookup_res)
             sa_result = [lookup_result]
-            return render_template("siclookup_template.html", sa_result=sa_result)
+            if session["test_harness"]:
+                return render_template("siclookup_template.html", sa_result=sa_result)
+            else:
+                # If not in test harness, redirect to the thank you page
+                return redirect(url_for("thank_you", survey="Shape Tomorrow Prototype"))
 
-        print("Session data not found")
         return redirect(url_for("thank_you", survey=SURVEY_NAME))
 
 
@@ -1398,16 +1405,7 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         print(f"Unexpected error occurred: {e}")
         return redirect(url_for("error_page"))
 
-
-# The survey route summarises the data that has been
-# entered by user, using the session data held in the survey
-# dictionary. The data is then displayed in a summary template
-@app.route("/summary")
-def summary():
-    print("/summary")
-    if print_session_size() > SESSION_LIMIT:
-        print_session()
-
+def summarise_survey():
     survey_data = session.get("survey")
     survey_questions = survey_data["survey"]["questions"]
 
@@ -1441,9 +1439,23 @@ def summary():
                 question["question_text"] + ai_assist["question_assist_label"]
             )
 
-    # print("Survey questions:", survey_questions)
-    return render_template("summary_template.html", questions=survey_questions)
+    return survey_questions
 
+# The survey route summarises the data that has been
+# entered by user, using the session data held in the survey
+# dictionary. The data is then displayed in a summary template
+@app.route("/summary")
+def summary():
+    print("/summary")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
+    survey_questions = summarise_survey()
+
+    # print("Survey questions:", survey_questions)
+
+    # If in test harness, render the summary template
+    return render_template("summary_template.html", questions=survey_questions)
 
 @app.route("/survey_assist_consent")
 def survey_assist_consent():
@@ -1498,7 +1510,15 @@ def classification():
 @app.route("/thank_you")
 def thank_you():
     print_session()
-    return render_template("thank_you.html", survey=SURVEY_NAME)
+    # Shape Tomorrow Survey
+    if session["test_harness"]:
+        # If not in test harness, render the thank you template
+        survey = SURVEY_NAME
+    else:
+        # If in test harness, render the thank you template
+        survey = "Shape Tomorrow Prototype"
+
+    return render_template("thank_you.html", survey=survey)
 
 
 # Simple route to handle errors
@@ -1992,5 +2012,12 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
     print("update_session_and_redirect (exit B)")
     if print_session_size() > SESSION_LIMIT:
         print_session()
+
+    if not session["test_harness"] and route == "summary":
+        # This is a quick fix to ensure summary screen and
+        # survey_assist_results are not shown in the UI when not in
+        # test harness mode.
+        _ = summarise_survey()
+        route = "survey_assist_results"
 
     return redirect(url_for(route))
