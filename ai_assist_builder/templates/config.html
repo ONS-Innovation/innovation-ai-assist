@@ -108,6 +108,36 @@
 
 {{
     onsRadios({
+        "name": "survey-assist",
+        "legend": "Enable Survey Assist?",
+        "description": "If enabled, SIC Lookup is performed and AI can ask questions",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "survey-assist-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "SIC Lookup performed and AI can ask dynamic questions"
+                },
+                "value": "yes",
+                "checked": config.survey_assist == "yes"
+            },
+            {
+                "id": "survey-assist-no",
+                "label": {
+                    "text": "no",
+                    "description": "SIC Lookup is NOT performed. AI will NOT ask questions. Results are NOT saved"
+                },
+                "value": "no",
+                "checked": config.survey_assist == "no"
+            }
+        ]
+    })
+}}
+
+
+{{
+    onsRadios({
         "name": "show-consent",
         "legend": "Show AI consent screen?",
         "borderless": true,

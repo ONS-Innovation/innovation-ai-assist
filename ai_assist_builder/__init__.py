@@ -335,6 +335,10 @@ def config():  # noqa: PLR0911
         )
         print(f"Show consent config: {session['show_consent']}")
 
+        ai_assist["enabled"] = (
+            request.form.get("survey-assist") == "yes"
+        )
+        print(f"Survey Assist config: {ai_assist['enabled']}")
 
         # Reset the consent question text
         # Ideally we would read this from the json again
@@ -373,6 +377,7 @@ def config():  # noqa: PLR0911
 
         config = {
             "selected_version": session["endpoint"],
+            "survey_assist": "yes" if ai_assist["enabled"] else "no",
             "test_harness": "yes" if session["test_harness"] else "no",
             "show_consent": "yes" if session["show_consent"] else "no",
             "follow_up_type": session["follow_up_type"],
@@ -391,7 +396,7 @@ def config():  # noqa: PLR0911
             return redirect(url_for("error_page", error="Not authorised for config"))
 
         logger.info(
-            f"Config settings - selected_version:{config['selected_version']} show_consent:{config['show_consent']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
+            f"Config settings - selected_version:{config['selected_version']} survey_assist:{config['survey_assist']} show_consent:{config['show_consent']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
         )
 
         return render_template(
@@ -1017,7 +1022,7 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 
     html_output = "<strong> ERROR ERROR ERROR </strong>"
     # check the survey assist responses exist in the session
-    if "sa_response" in session:
+    if "sa_response" in session and ai_assist["enabled"]:
         sa_response_list = session.get("sa_response", [])
         if sa_response_list:
             sa_response = sa_response_list[0]
@@ -1216,8 +1221,8 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
         if session["test_harness"]:
             return render_template("classification_template.html", sa_result=sa_result)
         else:
-            # If not in test harness, redirect to the thank you page
-            return redirect(url_for("thank_you", survey="Shape Tomorrow Prototype"))
+            # If not in test harness, save results and finish
+            return redirect(url_for("save_results"))
     else:
         if "sic_lookup" in session:
             sic_lookup_res = session.get("sic_lookup")
@@ -1227,7 +1232,7 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
                 return render_template("siclookup_template.html", sa_result=sa_result)
             else:
                 # If not in test harness, redirect to the thank you page
-                return redirect(url_for("thank_you", survey="Shape Tomorrow Prototype"))
+                return redirect(url_for("save_results"))
 
         return redirect(url_for("thank_you", survey=SURVEY_NAME))
 
