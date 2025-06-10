@@ -817,7 +817,7 @@ def survey_assist():  # noqa: C901, PLR0911
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        return render_template("question_template.html", **mapped_question.to_dict())
+        return render_template("sa_question_template.html", **mapped_question.to_dict())
 
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -1382,7 +1382,12 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        return render_template("thank_you.html", survey=SURVEY_NAME)
+        if session["test_harness"]:
+            survey_text= SURVEY_NAME
+        else:
+            survey_text = "Shape Tomorrow Prototype"
+        
+        return render_template("thank_you.html", survey=survey_text)
 
     except requests.exceptions.Timeout:
         print("Error: Request timed out")
@@ -1771,7 +1776,7 @@ def followup_redirect():
                     print_session()
 
                 return render_template(
-                    "question_template.html", **mapped_question.to_dict()
+                    "sa_question_template.html", **mapped_question.to_dict()
                 )
 
         # Mark the end time for the survey assist

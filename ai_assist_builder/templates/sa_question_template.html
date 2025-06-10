@@ -37,9 +37,15 @@
         {%
             call onsQuestion({
                 "title": question_text,
-                "description": question_description,
                 "classes": "ons-u-mt-no",
                 "legendIsQuestionTitle": true,
+                "guidance": {
+                    "content": "We added this question to better understand your earlier answer.",
+                },
+                "justification": {
+                    "title": "Why we ask this question",
+                    "content": justification_text
+                }
             })
         %}
 
