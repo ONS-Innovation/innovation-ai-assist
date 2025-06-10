@@ -193,6 +193,28 @@ body {
 section h2 {
   padding-top: 1rem;
 }
+
+.info-box {
+  background-color: #e9f1f7; /* light blue */
+  border-left: 6px solid #1e4e79; /* dark blue accent */
+  padding: 1rem;
+  margin: 1.5rem 0;
+  font-family: Arial, sans-serif;
+}
+
+.info-box h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #000;
+}
+
+.info-box p {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
 </style>
 
 {% endblock %}
@@ -250,6 +272,14 @@ section h2 {
               "url": url_for("survey"),
               }) 
           }}
+        <div class="info-box">
+          <h3>Why we might ask follow-up questions</h3>
+          <p>
+            To help us better understand your answers, we may sometimes ask extra questions based on what you've told us.
+            Some of these follow-up questions are generated automatically using trusted technology.
+            You can choose whether or not to answer them, and there's always a chance to give feedback if something doesn’t feel right.
+          </p>
+        </div>
       </section>
       <hr>
       <section id="guidance">
