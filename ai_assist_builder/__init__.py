@@ -568,7 +568,12 @@ def survey():
                 "question_text"
             ].replace("PLACEHOLDER_TEXT", session["response"][placeholder_field])
 
-    return render_template("question_template.html", **current_question)
+    if session["test_harness"]:
+        # In test harness mode, render the question template
+        print("Test harness mode, rendering question template")
+        return render_template("question_template.html", **current_question)
+    else:
+        return render_template("basic_question_template.html", **current_question)
 
 
 @app.route("/chat_lookup", methods=["POST"])
@@ -817,7 +822,12 @@ def survey_assist():  # noqa: C901, PLR0911
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        return render_template("sa_question_template.html", **mapped_question.to_dict())
+        if session["test_harness"]:
+            print("Test harness mode, rendering question template")
+            return render_template("question_template.html", **mapped_question.to_dict())
+        else:
+            print("Survey Assist mode, rendering SA question template")
+            return render_template("sa_question_template.html", **mapped_question.to_dict())
 
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -1775,9 +1785,18 @@ def followup_redirect():
                 if print_session_size() > SESSION_LIMIT:
                     print_session()
 
-                return render_template(
-                    "sa_question_template.html", **mapped_question.to_dict()
-                )
+                # Render the follow-up quuestion template differently
+                # for test harness and public testing
+                if session["test_harness"]:
+                    print("Rendering follow-up question template")
+                    return render_template(
+                        "question_template.html", **mapped_question.to_dict()
+                    )
+                else:
+                    print("Rendering follow-up question template for public testing")
+                    return render_template(
+                        "sa_question_template.html", **mapped_question.to_dict()
+                    )
 
         # Mark the end time for the survey assist
         survey_data.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
