@@ -1,6 +1,6 @@
 import os
 
-from ai_assist_builder.utils.jwt_utils import current_utc_time, generate_jwt
+from ai_assist_builder.utils.jwt_utils import generate_jwt
 
 
 def get_token():
@@ -12,10 +12,12 @@ def get_token():
 
     # Generate JWT (lasts 1 hour - TODO rotate before expiry)
     jwt_token = generate_jwt(
-        jwt_secret_path, audience=api_gateway, sa_email=sa_email, expiry_length=TOKEN_EXPIRY
+        jwt_secret_path,
+        audience=api_gateway,
+        sa_email=sa_email,
+        expiry_length=TOKEN_EXPIRY,
     )
 
     print(jwt_token)
 
     return jwt_token
-

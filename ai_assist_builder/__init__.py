@@ -325,19 +325,13 @@ def config():  # noqa: PLR0911
         session["follow_up_type"] = request.form.get("follow-up-question")
         print(f"Follow-up question type config: {session['follow_up_type']}")
 
-        session["test_harness"] = (
-            request.form.get("test-harness") == "yes"
-        )
+        session["test_harness"] = request.form.get("test-harness") == "yes"
         print(f"Test harness routing config: {session['test_harness']}")
 
-        session["show_consent"] = (
-            request.form.get("show-consent") == "yes"
-        )
+        session["show_consent"] = request.form.get("show-consent") == "yes"
         print(f"Show consent config: {session['show_consent']}")
 
-        ai_assist["enabled"] = (
-            request.form.get("survey-assist") == "yes"
-        )
+        ai_assist["enabled"] = request.form.get("survey-assist") == "yes"
         print(f"Survey Assist config: {ai_assist['enabled']}")
 
         # Reset the consent question text
@@ -469,7 +463,7 @@ def check_login():
 
 
 @app.route("/")
-def index():
+def index():  # noqa: C901
     if "follow_up_type" not in session:
         session["follow_up_type"] = FOLLOW_UP_TYPE
 
@@ -710,7 +704,7 @@ def chat_assist():  # noqa: PLR0911
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - split out to functions
 @app.route("/survey_assist", methods=["GET", "POST"])
-def survey_assist():  # noqa: C901, PLR0911
+def survey_assist():  # noqa: C901, PLR0911, PLR0912
 
     llm = "gemini"  # gemini or chat-gpt
     type = "sic"  # sic or soc or sic_soc
@@ -824,10 +818,14 @@ def survey_assist():  # noqa: C901, PLR0911
 
         if session["test_harness"]:
             print("Test harness mode, rendering question template")
-            return render_template("question_template.html", **mapped_question.to_dict())
+            return render_template(
+                "question_template.html", **mapped_question.to_dict()
+            )
         else:
             print("Survey Assist mode, rendering SA question template")
-            return render_template("sa_question_template.html", **mapped_question.to_dict())
+            return render_template(
+                "sa_question_template.html", **mapped_question.to_dict()
+            )
 
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -1392,7 +1390,9 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        survey_text = SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
+        survey_text = (
+            SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
+        )
 
         return render_template("thank_you.html", survey=survey_text)
 
@@ -1421,6 +1421,7 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         # General exception for unexpected errors
         print(f"Unexpected error occurred: {e}")
         return redirect(url_for("error_page"))
+
 
 def summarise_survey():
     survey_data = session.get("survey")
@@ -1458,6 +1459,7 @@ def summarise_survey():
 
     return survey_questions
 
+
 # The survey route summarises the data that has been
 # entered by user, using the session data held in the survey
 # dictionary. The data is then displayed in a summary template
@@ -1473,6 +1475,7 @@ def summary():
 
     # If in test harness, render the summary template
     return render_template("summary_template.html", questions=survey_questions)
+
 
 @app.route("/survey_assist_consent")
 def survey_assist_consent():
@@ -1528,12 +1531,7 @@ def classification():
 def thank_you():
     print_session()
     # Shape Tomorrow Survey
-    if session["test_harness"]:
-        # If not in test harness, render the thank you template
-        survey = SURVEY_NAME
-    else:
-        # If in test harness, render the thank you template
-        survey = "Shape Tomorrow Prototype"
+    survey = SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
 
     return render_template("thank_you.html", survey=survey)
 
@@ -1927,7 +1925,7 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
         show_consent = False
 
         # Check if showing consent is required
-        #if ai_assist["consent"].get("required", False) and session["show_consent"]:
+        # if ai_assist["consent"].get("required", False) and session["show_consent"]:
         if session.get("show_consent", True):
             print("!!!! Consent required for AI Assist interaction !!!!")
             show_consent = True
@@ -2022,7 +2020,9 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
                     user_survey = session.get("survey")
 
                     # Mark the survey assist time start
-                    user_survey.get("survey")["survey_assist_time_start"] = datetime.now(timezone.utc)
+                    user_survey.get("survey")["survey_assist_time_start"] = (
+                        datetime.now(timezone.utc)
+                    )
                     session.modified = True
 
                     print("REDIRECTING to Survey Assist")
