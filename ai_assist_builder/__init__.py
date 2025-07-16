@@ -123,7 +123,7 @@ app.config["FREEZER_DESTINATION"] = "../build"
 app.cache = {}
 
 # GCP Bucket and File Info
-BUCKET_NAME = "sandbox-survey-assist"
+BUCKET_NAME = os.getenv("BUCKET_NAME", "sandbox-survey-assist")
 USERS_FILE = "users.json"
 storage_client = storage.Client()
 
@@ -302,16 +302,38 @@ def ons_mockup():
     return render_template("ons_mockup.html")
 
 
+@app.route("/ons_shape_tomorrow", methods=["GET"])
+def ons_shape_tomorrow():
+
+    # Get the role of the user
+    role = session.get("role")
+    print(f"Role: {role}")
+    if role not in ["admin", "tester"]:
+        return render_template("error_ons_mockup.html")
+
+    return render_template("ons_shape_tomorrow.html")
+
+
 @app.route("/config", methods=["GET", "POST"])
 def config():  # noqa: PLR0911
     if request.method == "POST":
-        print(f"Selected: {request.form.get("api-version")}")
+        print(f"API Version config: {request.form.get("api-version")}")
         session["endpoint"] = (
             "classify" if request.form.get("api-version") == "v1v2" else "classify-v3"
         )
-        print(f"Classify endpoint: {session['endpoint']}")
+        print(f"Classify endpoint config: {session['endpoint']}")
         session["follow_up_type"] = request.form.get("follow-up-question")
-        print(f"Follow-up question on post: {session['follow_up_type']}")
+        print(f"Follow-up question type config: {session['follow_up_type']}")
+
+        session["test_harness"] = request.form.get("test-harness") == "yes"
+        print(f"Test harness routing config: {session['test_harness']}")
+
+        session["show_consent"] = request.form.get("show-consent") == "yes"
+        print(f"Show consent config: {session['show_consent']}")
+
+        ai_assist["enabled"] = request.form.get("survey-assist") == "yes"
+        print(f"Survey Assist config: {ai_assist['enabled']}")
+
         # Reset the consent question text
         # Ideally we would read this from the json again
         ai_assist["consent"][
@@ -349,6 +371,9 @@ def config():  # noqa: PLR0911
 
         config = {
             "selected_version": session["endpoint"],
+            "survey_assist": "yes" if ai_assist["enabled"] else "no",
+            "test_harness": "yes" if session["test_harness"] else "no",
+            "show_consent": "yes" if session["show_consent"] else "no",
             "follow_up_type": session["follow_up_type"],
             "applied": applied,
             "model": response_data.get("llm_model"),
@@ -365,7 +390,7 @@ def config():  # noqa: PLR0911
             return redirect(url_for("error_page", error="Not authorised for config"))
 
         logger.info(
-            f"Config settings - selected_version:{config['selected_version']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
+            f"Config settings - selected_version:{config['selected_version']} survey_assist:{config['survey_assist']} show_consent:{config['show_consent']} test_harness:{config['test_harness']} follow_up_type:{config['follow_up_type']} model:{config['model']} applied:{config['applied']}"
         )
 
         return render_template(
@@ -427,6 +452,8 @@ def check_login():
         print(f"User {email.split("@")[0]} logged in with role {session['role']}")
         session["endpoint"] = DEFAULT_ENDPOINT
         session["follow_up_type"] = FOLLOW_UP_TYPE
+        session["test_harness"] = True
+        session["show_consent"] = True
         session.modified = True
         return redirect("/")
     else:
@@ -436,9 +463,15 @@ def check_login():
 
 
 @app.route("/")
-def index():
+def index():  # noqa: C901
     if "follow_up_type" not in session:
         session["follow_up_type"] = FOLLOW_UP_TYPE
+
+    if "test_harness" not in session:
+        session["test_harness"] = True
+
+    if "show_consent" not in session:
+        session["show_consent"] = True
 
     if "user" not in session:
         return redirect("/login")
@@ -480,7 +513,9 @@ def index():
     if print_session_size() > SESSION_LIMIT:
         print_session()
 
-    return render_template("index.html")
+    url = "survey" if session["test_harness"] else "ons_shape_tomorrow"
+
+    return render_template("index.html", url=url)
 
 
 # TODO - Breadcrumbs are not being rendered at the moment
@@ -527,7 +562,12 @@ def survey():
                 "question_text"
             ].replace("PLACEHOLDER_TEXT", session["response"][placeholder_field])
 
-    return render_template("question_template.html", **current_question)
+    if session["test_harness"]:
+        # In test harness mode, render the question template
+        print("Test harness mode, rendering question template")
+        return render_template("question_template.html", **current_question)
+    else:
+        return render_template("basic_question_template.html", **current_question)
 
 
 @app.route("/chat_lookup", methods=["POST"])
@@ -664,7 +704,7 @@ def chat_assist():  # noqa: PLR0911
 # A generic route that handles survey interactions (e.g call to AI)
 # TODO - split out to functions
 @app.route("/survey_assist", methods=["GET", "POST"])
-def survey_assist():  # noqa: C901, PLR0911
+def survey_assist():  # noqa: C901, PLR0911, PLR0912
 
     llm = "gemini"  # gemini or chat-gpt
     type = "sic"  # sic or soc or sic_soc
@@ -776,7 +816,16 @@ def survey_assist():  # noqa: C901, PLR0911
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        return render_template("question_template.html", **mapped_question.to_dict())
+        if session["test_harness"]:
+            print("Test harness mode, rendering question template")
+            return render_template(
+                "question_template.html", **mapped_question.to_dict()
+            )
+        else:
+            print("Survey Assist mode, rendering SA question template")
+            return render_template(
+                "sa_question_template.html", **mapped_question.to_dict()
+            )
 
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request timed out. Please try again later."}), 504
@@ -981,7 +1030,7 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
 
     html_output = "<strong> ERROR ERROR ERROR </strong>"
     # check the survey assist responses exist in the session
-    if "sa_response" in session:
+    if "sa_response" in session and ai_assist["enabled"]:
         sa_response_list = session.get("sa_response", [])
         if sa_response_list:
             sa_response = sa_response_list[0]
@@ -1177,15 +1226,22 @@ def survey_assist_results():  # noqa: C901, PLR0912, PLR0915
             lookup_result = create_lookup_result(sic_lookup_res)
             sa_result.append(lookup_result)
 
-        return render_template("classification_template.html", sa_result=sa_result)
+        if session["test_harness"]:
+            return render_template("classification_template.html", sa_result=sa_result)
+        else:
+            # If not in test harness, save results and finish
+            return redirect(url_for("save_results"))
     else:
         if "sic_lookup" in session:
             sic_lookup_res = session.get("sic_lookup")
             lookup_result = create_lookup_result(sic_lookup_res)
             sa_result = [lookup_result]
-            return render_template("siclookup_template.html", sa_result=sa_result)
+            if session["test_harness"]:
+                return render_template("siclookup_template.html", sa_result=sa_result)
+            else:
+                # If not in test harness, redirect to the thank you page
+                return redirect(url_for("save_results"))
 
-        print("Session data not found")
         return redirect(url_for("thank_you", survey=SURVEY_NAME))
 
 
@@ -1334,7 +1390,11 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        return render_template("thank_you.html", survey=SURVEY_NAME)
+        survey_text = (
+            SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
+        )
+
+        return render_template("thank_you.html", survey=survey_text)
 
     except requests.exceptions.Timeout:
         print("Error: Request timed out")
@@ -1363,15 +1423,7 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         return redirect(url_for("error_page"))
 
 
-# The survey route summarises the data that has been
-# entered by user, using the session data held in the survey
-# dictionary. The data is then displayed in a summary template
-@app.route("/summary")
-def summary():
-    print("/summary")
-    if print_session_size() > SESSION_LIMIT:
-        print_session()
-
+def summarise_survey():
     survey_data = session.get("survey")
     survey_questions = survey_data["survey"]["questions"]
 
@@ -1405,7 +1457,23 @@ def summary():
                 question["question_text"] + ai_assist["question_assist_label"]
             )
 
+    return survey_questions
+
+
+# The survey route summarises the data that has been
+# entered by user, using the session data held in the survey
+# dictionary. The data is then displayed in a summary template
+@app.route("/summary")
+def summary():
+    print("/summary")
+    if print_session_size() > SESSION_LIMIT:
+        print_session()
+
+    survey_questions = summarise_survey()
+
     # print("Survey questions:", survey_questions)
+
+    # If in test harness, render the summary template
     return render_template("summary_template.html", questions=survey_questions)
 
 
@@ -1462,7 +1530,10 @@ def classification():
 @app.route("/thank_you")
 def thank_you():
     print_session()
-    return render_template("thank_you.html", survey=SURVEY_NAME)
+    # Shape Tomorrow Survey
+    survey = SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
+
+    return render_template("thank_you.html", survey=survey)
 
 
 # Simple route to handle errors
@@ -1709,9 +1780,18 @@ def followup_redirect():
                 if print_session_size() > SESSION_LIMIT:
                     print_session()
 
-                return render_template(
-                    "question_template.html", **mapped_question.to_dict()
-                )
+                # Render the follow-up quuestion template differently
+                # for test harness and public testing
+                if session["test_harness"]:
+                    print("Rendering follow-up question template")
+                    return render_template(
+                        "question_template.html", **mapped_question.to_dict()
+                    )
+                else:
+                    print("Rendering follow-up question template for public testing")
+                    return render_template(
+                        "sa_question_template.html", **mapped_question.to_dict()
+                    )
 
         # Mark the end time for the survey assist
         survey_data.get("survey")["survey_assist_time_end"] = datetime.now(timezone.utc)
@@ -1842,6 +1922,15 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
     # continue with the AI assist interaction
     if ai_assist.get("enabled", True):
         consent = False
+        show_consent = False
+
+        # Check if showing consent is required
+        # if ai_assist["consent"].get("required", False) and session["show_consent"]:
+        if session.get("show_consent", True):
+            print("!!!! Consent required for AI Assist interaction !!!!")
+            show_consent = True
+        else:
+            print("!!! Consent NOT required for AI Assist interaction !!!")
 
         session.modified = True
         interactions = ai_assist.get("interactions")
@@ -1923,8 +2012,21 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
                 print_session()
 
             if consent:
-                # print("AI Assist interaction detected - REDIRECTING to consent")
-                return redirect(url_for("survey_assist_consent"))
+                if show_consent:
+                    # print("AI Assist interaction detected - REDIRECTING to consent")
+                    return redirect(url_for("survey_assist_consent"))
+                else:
+                    # Get the survey data from the session
+                    user_survey = session.get("survey")
+
+                    # Mark the survey assist time start
+                    user_survey.get("survey")["survey_assist_time_start"] = (
+                        datetime.now(timezone.utc)
+                    )
+                    session.modified = True
+
+                    print("REDIRECTING to Survey Assist")
+                    return redirect(url_for("survey_assist"))
             else:
                 # SIC code found, skip Survey Assist consent
                 print("SIC code found, skipping Survey Assist consent")
@@ -1936,5 +2038,12 @@ def update_session_and_redirect(key, value, route):  # noqa: PLR0912, PLR0915, C
     print("update_session_and_redirect (exit B)")
     if print_session_size() > SESSION_LIMIT:
         print_session()
+
+    if not session["test_harness"] and route == "summary":
+        # This is a quick fix to ensure summary screen and
+        # survey_assist_results are not shown in the UI when not in
+        # test harness mode.
+        _ = summarise_survey()
+        route = "survey_assist_results"
 
     return redirect(url_for(route))

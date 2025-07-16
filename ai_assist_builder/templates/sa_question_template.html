@@ -37,12 +37,24 @@
         {%
             call onsQuestion({
                 "title": question_text,
-                "description": question_description,
                 "classes": "ons-u-mt-no",
                 "legendIsQuestionTitle": true,
+                "guidance": {
+                    "content": "Automated follow-up question.",
+                },
                 "justification": {
-                    "title": "Why we ask this question",
-                    "content": justification_text
+                    "title": "Why am I being asked an automated follow-up question?",
+                    "content": "<p>You are only asked an automated follow-up question when we need clarity on your 
+previous answers. By providing an answer you will help us improve the accuracy of 
+our statistics.</p>
+<p>You can choose to answer, give feedback on, or skip automated follow-up questions.</p>
+<p>There is a small risk that automated follow-up questions will be inaccurate, offensive 
+or ask for personal information. If that happens, please skip the question and give 
+your feedback so we can improve the tool.</p>
+<p>The AI tool uses an LLM (large language model) called Google Gemini that 
+generates the automated follow-up questions. Your data is not stored by Google 
+Gemini and it is not used to train Google’s AI models. It is only used once, for the 
+specific purpose of creating the follow up questions.</p>"
                 }
             })
         %}

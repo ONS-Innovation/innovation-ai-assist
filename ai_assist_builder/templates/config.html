@@ -108,6 +108,93 @@
 
 {{
     onsRadios({
+        "name": "survey-assist",
+        "legend": "Enable Survey Assist?",
+        "description": "If enabled, SIC Lookup is performed and AI can ask questions",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "survey-assist-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "SIC Lookup performed and AI can ask dynamic questions"
+                },
+                "value": "yes",
+                "checked": config.survey_assist == "yes"
+            },
+            {
+                "id": "survey-assist-no",
+                "label": {
+                    "text": "no",
+                    "description": "SIC Lookup is NOT performed. AI will NOT ask questions. Results are NOT saved"
+                },
+                "value": "no",
+                "checked": config.survey_assist == "no"
+            }
+        ]
+    })
+}}
+
+
+{{
+    onsRadios({
+        "name": "show-consent",
+        "legend": "Show AI consent screen?",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "show-consent-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "Consent screen will be shown prior to AI interaction"
+                },
+                "value": "yes",
+                "checked": config.show_consent == "yes"
+            },
+            {
+                "id": "show-consent-no",
+                "label": {
+                    "text": "no",
+                    "description": "Consent screen will NOT be shown"
+                },
+                "value": "no",
+                "checked": config.show_consent == "no"
+            }
+        ]
+    })
+}}
+
+
+{{
+    onsRadios({
+        "name": "test-harness",
+        "legend": "Show internal test harness screens?",
+        "borderless": true,
+        "radios": [
+            {
+                "id": "test-harness-yes",
+                "label": {
+                    "text": "yes",
+                    "description": "SIC classification screens will be shown"
+                },
+                "value": "yes",
+                "checked": config.test_harness == "yes"
+            },
+            {
+                "id": "test-harness-no",
+                "label": {
+                    "text": "no",
+                    "description": "SIC classification screens will NOT be shown"
+                },
+                "value": "no",
+                "checked": config.test_harness == "no"
+            }
+        ]
+    })
+}}
+
+{{
+    onsRadios({
         "name": "follow-up-question",
         "legend": "Select the type of follow-up question",
         "borderless": true,

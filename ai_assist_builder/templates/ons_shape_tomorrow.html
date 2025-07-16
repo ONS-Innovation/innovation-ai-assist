@@ -1,0 +1,351 @@
+{% extends "layout/_template.njk" %}
+{% from "components/button/_macro.njk" import onsButton %}
+{% from "components/panel/_macro.njk" import onsPanel %}
+
+{%  
+    set pageConfig = {
+        "header": {
+            "title": 'Shape Tomorrow Prototype',
+            "orgLogoHref": 'https://www.ons.gov.uk',
+            "titleLogoHref": "/",
+            "mastheadLogo": {
+              "large": '<img class="logo" src="https://cdn.ons.gov.uk/assets/images/ons-logo/v2/ons-logo.svg" height="150" width="250" alt="Office for National Statistics logo">'
+            },
+            "titleLogo": "/",
+            "navigation": navigation.navigation,
+        },
+        "meta": {
+            "canonicalUrl": "/",
+            "description": "/",
+        },
+        "footer": {
+            "OGLLink": true,
+            "legal": [
+            ],
+              },
+    }
+%}
+{% block head %}
+<style>
+    * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+}
+
+.header {
+  background-color: #003c71;
+  color: white;
+  padding: 1rem 2rem;
+}
+
+.header .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav {
+  margin-top: 1rem;
+}
+
+.nav a {
+  color: white;
+  margin-right: 1rem;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.search-bar {
+  background-color: #e8e8e8;
+  padding: 1rem;
+  text-align: center;
+}
+
+.search-bar input {
+  padding: 0.5rem;
+  width: 50%;
+  margin-right: 0.5rem;
+}
+
+.search-bar button {
+  padding: 0.5rem 1rem;
+  background-color: #003c71;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #005ea5;
+}
+
+.main-content {
+  padding: 2rem;
+}
+
+.main-content h1 {
+  font-size: 2rem;
+  color: #5b2c89;
+}
+
+.main-content p {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.card {
+  background-color: white;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.card strong {
+  font-size: 1.5rem;
+  color: #003c71;
+}
+
+.card p {
+  margin: 0.5rem 0;
+}
+
+.card a.btn {
+    display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #5b2c89;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.card a.btn:hover {
+  background-color: #4a2070;
+}
+
+/* Column spans */
+.span-6 {
+  grid-column: span 6;
+}
+
+.span-3 {
+  grid-column: span 3;
+}
+
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.sidebar {
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar ol {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.sidebar li {
+  margin-bottom: 0.5rem;
+}
+
+.sidebar a {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  text-decoration: underline;
+}
+
+section h2 {
+  padding-top: 1rem;
+}
+
+.info-box {
+  background-color: #e9f1f7; /* light blue */
+  border-left: 6px solid #1e4e79; /* dark blue accent */
+  padding: 1rem;
+  margin: 1.5rem 0;
+  font-family: Arial, sans-serif;
+}
+
+.info-box h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #000;
+}
+
+.info-box p {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+</style>
+
+{% endblock %}
+{% block main %}  
+
+<header class="header">
+    <div class="logo">Office for National Statistics</div>
+    <nav class="nav">
+      <a href="#">Home</a>
+      <a href="#">Business, Industry and Trade</a>
+      <a href="#">Economy</a>
+      <a href="#">Employment and Labour Market</a>
+      <a href="#">People, Population and Community</a>
+      <a href="#">Taking part in a survey?</a>
+    </nav>
+  </header>
+  
+  <section class="search-bar">
+    <input type="text" placeholder="Search for a keyword(s) or time series ID">
+    <button>Search</button>
+  </section>
+  
+  <div class="container">
+    <header>
+      <h1>Shape Tomorrow Study</h1>
+    </header>
+
+    <nav class="sidebar">
+      <h2>In this section</h2>
+      <ol>
+        <li><a href="#begin-study">Begin study</a></li>
+        <li><a href="#guidance">Guidance on completing the study</a></li>
+        <li><a href="#why-take-part">Why you should take part</a></li>
+        <li><a href="#data-protection">How we protect your data</a></li>
+        <li><a href="#automated-questions">Use of automated follow-up questions</a></li>
+        <li><a href="#contact">Contact us</a></li>
+      </ol>
+    </nav>
+    <hr>
+    <main class="content">
+      <section id="begin-study">
+        <div>
+        <h2>1. Begin study</h2>
+        <p>Thank you for taking part. The information you give us is protected by law and treated as confidential.</p>
+        <p>Find out more about <a href="#">how we protect your data</a>.</p>
+        </div>
+        {{ onsButton({
+              "id": "save-values-button",
+              "variants": 'loader',
+              "text": 'Start now',
+              "url": url_for("survey"),
+              }) 
+          }}
+        <div class="info-box">
+          <h3>Use of automated follow-up questions</h3>
+          <p>This study uses an Artificial Intelligence (AI) tool to generate automated follow-up questions.</p>
+          <p>You can choose to answer, give feedback on, or skip automated follow-up questions.</p>
+          <p>There is a small risk that automated follow-up questions will be inaccurate, offensive or ask for personal information.
+</p>
+        </div>
+      </section>
+      <hr>
+      <section id="guidance">
+        <h2>2. Guidance on completing the study</h2>
+
+        <p>Questions can be based on facts or opinions. No specialist knowledge is needed to 
+take part. Your honest answers help us produce reliable statistics about society.</p>
+        <p>Your answers will be saved each time you move to the next page.</p>
+        <p>If you are not able to complete the study, the information you have shared with us is 
+still useful. Saved data will be submitted.</p>
+        <p>For further information about our studies, <a href="https://www.ons.gov.uk/surveys/informationforhouseholdsandindividuals/householdandindividualsurveys/informationabouthouseholdsurveys" target="_blank" rel="noopener noreferrer">our studies.</a></p>
+        <p>The Office for National Statistics run lots of different studies in order to produce 
+official statistics. Find out more <a href="https://www.ons.gov.uk/surveys/informationforhouseholdsandindividuals/aboutstudiesaboutpeoplefamiliesandhouseholds" target="_blank" rel="noopener noreferrer">about studies about people, families and households.</a></p>
+      </section>
+
+      <!-- Future sections (placeholders for now) -->
+      <hr>
+      <section id="why-take-part">
+        <h2>3. Why you should take part</h2>
+        <p>This study is carried out by the Office for National Statistics (ONS), the UK's largest 
+independent producer of statistics. The ONS is not linked to any political party. Read 
+more about <a=href="https://www.ons.gov.uk/aboutus/whatwedo" target="_blank" rel="noopener noreferrer">what we do</a>.</p>
+        <p>Taking part in this study is your chance to help us understand the changing needs of the whole community.</p>
+        <p>The information you provide is used to create statistics, such as official employment and unemployment rates. You can read about these in our statistical bulletins.</p>
+        <p>Government departments, public bodies and charities use our statistics for many 
+projects, including:</p>
+        <ul>
+          <li>improving health care, well-being, and social care services</li>
+          <li>removing barriers to work and supporting people unable to work</li>
+          <li>meeting the need for housing, school places and recycling services</li>
+        </ul>
+      </section>
+
+      <hr>
+      <section id="data-protection">
+        <h2>4. How we protect your data</h2>
+        <p>The information you provide will be combined with the data from across the country and will not be used to identify you or your household in any way.</p>
+        <p>All the information you submit is protected by law and treated as confidential under the <a href="https://code.statisticsauthority.gov.uk/" target="_blank" rel="noopener noreferrer">Code of Practice for Statistics.</a></p>
+        <p>The ONS will receive all data collected and remain in control of all information given by participants.</p>
+        <p>For more information, see <a href="https://www.ons.gov.uk/aboutus/transparencyandgovernance/dataprotection" target="_blank" rel="noopener noreferrer">data protection</a> and <a href="https://www.ons.gov.uk/surveys/informationforhouseholdsandindividuals/householdandindividualsurveys/findingyourstudy/mystudy/confidentialityanddataprotection" target="_blank" rel="noopener noreferrer">data protection and studies about people, families and households.</a></p>
+      </section>
+
+      <hr>
+      <section id="automated-questions">
+        <h2>5. Use of automated follow-up questions</h2>
+        <p>This study uses an artificial intelligence (AI) tool to generate automated follow-up 
+questions. These questions are clearly labelled.</p>
+        <p>You can choose to answer, give feedback on, or skip automated follow-up questions.</p>
+        <p>You will only be asked an automated follow-up question if we need clarity on your 
+previous answers. By providing an answer you will help us improve the accuracy of 
+our statistics.</p>
+        <p>There is a small risk that automated follow-up questions will be inaccurate, offensive 
+or ask for personal information. If that happens, please skip the question and give 
+your feedback so we can improve the tool.</p>
+        <p>The AI tool uses an LLM (large language model) called Google Gemini that 
+generates the automated follow-up questions. Your data is not stored by Google 
+Gemini and it is not used to train Google’s AI models. It is only used once, for the 
+specific purpose of creating the follow up questions.</p>
+
+      <hr>
+      <section id="contact">
+        <h2>6. Contact us</h2>
+        <p>For accessibility assistance, email <a href="mailto:accessibility@ons.gov.uk">accessibility@ons.gov.uk</a>.</p>
+        <p>To take part over the phone, call us for free on 0800 085 7376.</p>
+        <p>Opening times are:</p>
+        <p>9am to 6pm Monday to Friday</p>
+        <p>9am to 1pm Saturday</p>
+        <p>For further information about our social studies, see <a href="https://www.ons.gov.uk/surveys/informationforhouseholdsandindividuals/householdandindividualsurveys/informationabouthouseholdsurveys" target="_blank" rel="noopener noreferrer">our studies</a>.</p>
+        <p>If you have any other queries, see our <a href="https://www.ons.gov.uk/surveys/informationforhouseholdsandindividuals/wanttogetintouch" target="_blank" rel="noopener noreferrer">get in touch web page</a>.</p>
+        <p>When you are ready to take part, please return to <a href=#begin-study>begin study</a>.</p>
+      </section>
+    </main>
+  </div>
+{% endblock %}
