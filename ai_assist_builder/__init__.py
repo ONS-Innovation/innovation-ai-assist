@@ -123,7 +123,7 @@ app.config["FREEZER_DESTINATION"] = "../build"
 app.cache = {}
 
 # GCP Bucket and File Info
-BUCKET_NAME = "sandbox-survey-assist"
+BUCKET_NAME = os.getenv("BUCKET_NAME", "sandbox-survey-assist")
 USERS_FILE = "users.json"
 storage_client = storage.Client()
 
@@ -1392,11 +1392,8 @@ def save_results():  # noqa: PLR0911, PLR0915, C901
         if print_session_size() > SESSION_LIMIT:
             print_session()
 
-        if session["test_harness"]:
-            survey_text= SURVEY_NAME
-        else:
-            survey_text = "Shape Tomorrow Prototype"
-        
+        survey_text = SURVEY_NAME if session["test_harness"] else "Shape Tomorrow Prototype"
+
         return render_template("thank_you.html", survey=survey_text)
 
     except requests.exceptions.Timeout:
